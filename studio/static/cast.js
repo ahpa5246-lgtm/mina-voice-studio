@@ -4,6 +4,7 @@
   const $ = q => document.querySelector(q);
   const say = (ar, en) => document.documentElement.lang === "en" ? en : ar;
   let profiles = [], availableVoices = [];
+  let lastCompletedEpisode = null;
   const lineHost = $("#episodeLines");
   const err = error => error instanceof Error ? error.message : String(error);
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -191,6 +192,8 @@
         $("#episodeZip").href=result.archive;$("#episodeZip").hidden=false;
         $("#episodeSrt").href=result.captions;$("#episodeSrt").hidden=false;
         const player=$("#episodePreview");player.src=result.download;player.hidden=false;
+        lastCompletedEpisode=id;
+        $("#checkSpeaker").hidden=false;
         const seconds=result.episode?.duration_seconds;
         status.textContent=say("اكتمل التوليد الحقيقي للحلقة.","The episode is rendered with the installed speech model.");
         progress.textContent=seconds?say("مدة الحلقة: ","Episode duration: ")+seconds+"s":"";
@@ -225,6 +228,8 @@
     button.disabled=true;
     $("#episodeZip").hidden=true;$("#episodeSrt").hidden=true;
     $("#episodePreview").hidden=true;
+    $("#checkSpeaker").hidden=true;$("#speakerReport").hidden=true;
+    lastCompletedEpisode=null;
     $("#episodeStatus").textContent=say("إرسال سيناريو الحلقة...","Submitting episode script...");
     try{
       const payload=new FormData();
@@ -233,6 +238,30 @@
       const job=await request("/api/cast/episodes",{method:"POST",body:payload});
       await watchJob(job.id);
     }catch(error){$("#episodeStatus").textContent=say("فشل: ","Failed: ")+err(error);}
+    finally{button.disabled=false;}
+  });
+  $("#checkSpeaker").addEventListener("click",async()=>{
+    if(!lastCompletedEpisode)return;
+    const button=$("#checkSpeaker"),box=$("#speakerReport");
+    button.disabled=true;box.hidden=false;
+    box.textContent=say("يتم تحميل نموذج بصمة المتحدث...", "Evaluating real speaker embeddings...");
+    try{
+      const submitted=await request(
+        "/api/cast/episodes/"+encodeURIComponent(lastCompletedEpisode)+"/speaker-report",
+        {method:"POST"});
+      let complete=false;
+      for(let i=0;i<500;i++){
+        const progress=await request("/api/jobs/"+encodeURIComponent(submitted.id));
+        if(progress.status==="failed")throw Error(progress.error||"Speaker evaluation failed");
+        if(progress.status==="completed"){
+          if(!progress.report)throw Error("No speaker similarity report returned");
+          box.textContent=JSON.stringify(progress.report,null,2);
+          complete=true;break;
+        }
+        await sleep(1600);
+      }
+      if(!complete)throw Error("Speaker evaluation polling limit reached");
+    }catch(error){box.textContent=say("تعذر التقييم: ","Evaluation failed: ")+err(error);}
     finally{button.disabled=false;}
   });
   document.querySelector('.nav[data-tab="cast"]').addEventListener("click",async()=>{

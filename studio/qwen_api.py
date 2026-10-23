@@ -55,6 +55,8 @@ def design_voice(name:str=Form(...),description:str=Form(...),
                 text_file=text_file,output=output,mode="design",
                 language=language,instruct=description)
             from studio.extras import _voice_folder,_voice_list,VOICE_LIMIT
+            if output.stat().st_size > app.MAX_UPLOAD_BYTES:
+                raise RuntimeError("Designed seed exceeds the 25MB voice-reference limit")
             if len(_voice_list())>=VOICE_LIMIT:
                 raise RuntimeError("Voice library is full after rendering")
             identifier=uuid4().hex

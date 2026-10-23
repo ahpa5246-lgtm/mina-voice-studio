@@ -81,6 +81,8 @@
 <button type="submit" class="primary"><span data-ar="توليد الحلقة صوتيًا" data-en="Render cartoon episode">توليد الحلقة صوتيًا</span><span>→</span></button>
 </form><p class="status" id="episodeStatus" role="status"></p>
 <div id="episodeProgress" class="hint" role="status"></div>
+<button id="checkSpeaker" type="button" class="outline" hidden data-ar="قياس ثبات أصوات الشخصيات (Resemblyzer)" data-en="Measure character voice consistency (Resemblyzer)">قياس ثبات أصوات الشخصيات (Resemblyzer)</button>
+<pre id="speakerReport" class="report" hidden aria-live="polite"></pre>
 <audio id="episodePreview" controls hidden></audio>
 <div class="cast-downloads">
 <a id="episodeZip" class="download" download hidden data-ar="تنزيل الحلقة وجميع الجمل ZIP" data-en="Download episode and every WAV line (ZIP)">تنزيل الحلقة وجميع الجمل ZIP</a>

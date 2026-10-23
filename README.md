@@ -129,3 +129,7 @@ Import the versioned notebook [kaggle/cartoon_voices_qwen3.ipynb](kaggle/cartoon
 For real episodes created inside Mina, optionally install `resemblyzer` and run `python scripts/voice_consistency.py path/to/episode.zip`. Embedding similarity is a proxy; use a blinded listening test across multiple voices/scenes and evaluate naturalness, drift, failures, GPU memory and real-time factor. Do not claim ElevenLabs parity based on similarity numbers alone.
 
 See the [Arabic Qwen + Kaggle guide](docs/QWEN_KAGGLE_AR.md).
+
+### Optional in-app episode voice-consistency report
+
+After an actual episode has finished rendering, the Cartoon Cast page displays **Measure character voice consistency**. Install `resemblyzer` in Mina's own **web-server** Python environment to enable it. The report compares GE2E speaker embeddings from real generated lines, counts within/between-character pairs and exposes mean cosine and minimum pair similarity, with **no pass/fail threshold**. Short recordings or incompatible audio correctly fail rather than producing fake values. Model weights will be downloaded on first use when the optional package supports it. No score is presented as proof of voice authenticity, especially for highly stylized characters or Arabic.

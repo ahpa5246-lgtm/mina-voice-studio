@@ -141,3 +141,32 @@ def captions(job_id: str):
     return FileResponse(_artifact(job_id, "dialogue.srt"),
                         media_type="text/plain; charset=utf-8",
                         filename=f"mina-cartoon-{job_id[:8]}.srt")
+
+
+@router.post("/episodes/{job_id}/speaker-report",status_code=202)
+def evaluate_episode_voices(job_id: str):
+    """A real optional speaker-embedding model; no arbitrary success threshold."""
+    import importlib.util
+    if importlib.util.find_spec("resemblyzer") is None:
+        raise HTTPException(503, "Install resemblyzer into the Mina web-server Python environment.")
+    source=_artifact(job_id,"episode.zip")
+    host=_server()
+    report_job, directory=host._new_job("speaker-evaluation")
+    def work():
+        host._record(report_job,status="running")
+        try:
+            from scripts.voice_consistency import evaluate_archive
+            report=evaluate_archive(source)
+            (directory/"report.json").write_text(
+                json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
+        except Exception as exc:
+            host._record(report_job,status="failed",error=str(exc)[:800])
+        else:
+            host._record(report_job,status="completed",report=report)
+    try:
+        host.pool.submit(work)
+    except RuntimeError as exc:
+        host._discard_job(report_job)
+        raise HTTPException(503,"Evaluation queue unavailable") from exc
+    return {"id":report_job,"status":"queued",
+            "note":"Cosine similarity is a proxy; no verified identity threshold."}
