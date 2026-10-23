@@ -7,6 +7,7 @@ All audio frames in an episode are produced by the actual configured engine.
 from __future__ import annotations
 
 import json
+import shutil
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -181,14 +182,18 @@ def assemble_episode(lines: list[dict], wav_files: list[Path], directory: Path) 
                 merged.setsampwidth(2)
                 merged.setframerate(rate)
             if sample_rate != rate or ch != channels:
-                # All output remains PCM16; Python 3.11/3.12 audioop does not alter pitch.
-                import audioop
+                # libsoxr HQ sample-rate conversion replaces removed/deprecated audioop.
+                # Keep PCM16 samples and channel shapes explicit for every clip.
+                import numpy as np
+                import soxr
+                arr = np.frombuffer(samples, dtype="<i2").astype(np.float32)
+                arr = arr.reshape(-1, ch) / 32768.0
                 if ch != channels:
-                    samples = (audioop.tomono(samples,2,.5,.5) if ch == 2
-                               else audioop.tostereo(samples,2,1,1))
-                    ch = channels
+                    arr = np.mean(arr, axis=1, keepdims=True) if channels == 1 else np.repeat(arr, 2, axis=1)
                 if sample_rate != rate:
-                    samples = audioop.ratecv(samples,2,channels,sample_rate,rate,None)[0]
+                    arr = soxr.resample(arr, sample_rate, rate, quality="HQ")
+                quantized = np.rint(np.clip(arr * 32768.0, -32768, 32767))
+                samples = quantized.astype("<i2").tobytes()
             written += len(samples)
             if written > MAX_EPISODE_BYTES:
                 raise ValueError("Episode WAV exceeds allowed size.")
@@ -232,50 +237,93 @@ def assemble_episode(lines: list[dict], wav_files: list[Path], directory: Path) 
     return details
 
 
+def render_line(line: dict, target: Path, resolve_reference) -> None:
+    """Produce exactly one actual upstream clip, or fail without a fake render."""
+    profile = line["character"]
+    voice_id = profile["voice_id"]
+    reference = resolve_reference(voice_id) if voice_id else None
+    if profile["model"] in {"turbo", "nano", "qwen-clone"} and reference is None:
+        raise ValueError("This character needs a real reference recording.")
+    direction = DELIVERY[line["delivery"]]
+    exaggeration = min(1.0, max(0.25, profile["exaggeration"] + direction[0]))
+    cfg_weight = min(1.0, max(0, profile["cfg_weight"] + direction[1]))
+    text_file = target.with_suffix(".txt")
+    text_file.write_text(line["text"], encoding="utf-8")
+    if profile["model"].startswith("qwen-"):
+        from studio.qwen_runtime import synthesize
+        acting = {
+            "neutral": "",
+            "energetic": "Speak with animated excitement and lively pacing.",
+            "sarcastic": "Deliver the words with dry, skeptical sarcasm.",
+            "quiet": "Speak quietly with warm, restrained emotion.",
+            "dramatic": "Speak theatrically with expressive pauses.",
+            "angry": "Speak with audible frustration and anger.",
+            "sad": "Speak in a subdued, sad tone.",
+            "crying": "Speak tearfully, with a trembling emotional tone.",
+        }
+        # The official Base clone checkpoint does not accept acting instructions.
+        synthesize(
+            text_file=text_file, output=target,
+            mode="clone" if profile["model"] == "qwen-clone" else "custom",
+            language=QWEN_LANGUAGE[profile["language"]],
+            speaker=profile.get("speaker", "Ryan"),
+            ref_audio=reference, ref_text=profile.get("reference_text", ""),
+            instruct=acting[line["delivery"]] if profile["model"] == "qwen-custom" else "",
+        )
+    else:
+        engines.synthesize(
+            text_file=text_file, output=target, language=profile["language"],
+            reference=reference, model=profile["model"],
+            exaggeration=exaggeration, cfg_weight=cfg_weight,
+        )
+    _read_wav(target)
+
+
 def render_episode(root: Path, directory: Path, script: list[dict],
                    resolve_reference, on_line) -> dict:
-    """Every spoken line is synthesized for real; never reuse a mock audio file."""
+    """Render all lines, preserving an immutable character snapshot."""
     directory.mkdir(parents=True, exist_ok=True)
+    (directory / "script.json").write_text(
+        json.dumps(script, ensure_ascii=False, indent=2), encoding="utf-8")
     renders = []
-    for index, line in enumerate(script):
-        profile = line["character"]
-        voice_id = profile["voice_id"]
-        reference = resolve_reference(voice_id) if voice_id else None
-        if profile["model"] in {"turbo","nano","qwen-clone"} and reference is None:
-            raise ValueError("This character needs a real reference recording.")
-        direction = DELIVERY[line["delivery"]]
-        exaggeration = min(1.0, max(0.25, profile["exaggeration"] + direction[0]))
-        cfg_weight = min(1.0, max(0, profile["cfg_weight"] + direction[1]))
-        text_file = directory / f"line-{index+1:03}.txt"
-        target = directory / f"line-{index+1:03}.wav"
-        text_file.write_text(line["text"], encoding="utf-8")
-        on_line(index + 1, len(script))
-        if profile["model"].startswith("qwen-"):
-            from studio.qwen_runtime import synthesize
-            acting = {
-                "neutral":"",
-                "energetic":"Speak with animated excitement and lively pacing.",
-                "sarcastic":"Deliver the words with dry, skeptical sarcasm.",
-                "quiet":"Speak quietly with warm, restrained emotion.",
-                "dramatic":"Speak theatrically with expressive pauses.",
-                "angry":"Speak with audible frustration and anger.",
-                "sad":"Speak in a subdued, sad tone.",
-                "crying":"Speak tearfully, with a trembling emotional tone.",
-            }
-            # Qwen Base clone does not support the acting instruct argument;
-            # expressive per-line prompts are available for fixed preset speakers.
-            synthesize(text_file=text_file,output=target,
-                       mode="clone" if profile["model"]=="qwen-clone" else "custom",
-                       language=QWEN_LANGUAGE[profile["language"]],
-                       speaker=profile.get("speaker","Ryan"),
-                       ref_audio=reference,
-                       ref_text=profile.get("reference_text",""),
-                       instruct=(acting[line["delivery"]] if profile["model"]=="qwen-custom" else ""))
-        else:
-            engines.synthesize(
-                text_file=text_file, output=target, language=profile["language"],
-                reference=reference, model=profile["model"],
-                exaggeration=exaggeration, cfg_weight=cfg_weight)
-        _read_wav(target)  # Fail now, not after marking the episode complete.
+    for i, line in enumerate(script, 1):
+        target = directory / f"line-{i:03}.wav"
+        on_line(i, len(script))
+        render_line(line, target, resolve_reference)
         renders.append(target)
     return assemble_episode(script, renders, directory)
+
+
+def revise_episode(source: Path, destination: Path, line_number: int,
+                   text: str, delivery: str, resolve_reference) -> dict:
+    """Render *only* the chosen line and make a new episode; source is immutable."""
+    if not source.is_dir() or not (source / "script.json").is_file():
+        raise ValueError("Source episode does not have a reproducible script.")
+    script = json.loads((source / "script.json").read_text(encoding="utf-8"))
+    if not isinstance(script, list) or not 1 <= len(script) <= MAX_LINES:
+        raise ValueError("The source episode contains an invalid script snapshot.")
+    if not 1 <= line_number <= len(script):
+        raise ValueError("Line number is out of range.")
+    edited = normalize_text(text)
+    if not 1 <= len(edited) <= MAX_LINE_CHARS:
+        raise ValueError("The edited line must contain 1–500 characters.")
+    if delivery not in DELIVERY:
+        raise ValueError("Unknown performance direction.")
+    if sum(len(row["text"]) for row in script) - len(script[line_number-1]["text"]) + len(edited) > MAX_TOTAL_CHARS:
+        raise ValueError("Episode exceeds 6,000 characters.")
+    destination.mkdir(parents=True, exist_ok=True)
+    revised = [{**line} for line in script]
+    revised[line_number - 1] = {**revised[line_number - 1], "text": edited, "delivery": delivery}
+    wav_files = []
+    for i, line in enumerate(revised, 1):
+        target = destination / f"line-{i:03}.wav"
+        if i == line_number:
+            render_line(line, target, resolve_reference)
+        else:
+            original = source / f"line-{i:03}.wav"
+            _read_wav(original)
+            shutil.copyfile(original, target)
+        wav_files.append(target)
+    (destination / "script.json").write_text(
+        json.dumps(revised, ensure_ascii=False, indent=2), encoding="utf-8")
+    return assemble_episode(revised, wav_files, destination)

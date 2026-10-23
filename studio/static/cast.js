@@ -5,6 +5,7 @@
   const say = (ar, en) => document.documentElement.lang === "en" ? en : ar;
   let profiles = [], availableVoices = [];
   let lastCompletedEpisode = null;
+  let selectedProjectVersion = null;
   const lineHost = $("#episodeLines");
   const err = error => error instanceof Error ? error.message : String(error);
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -108,7 +109,35 @@
       node.remove();renumber();
     });
     const header = document.createElement("div");header.className="cast-line-header";
-    header.append(label,remove);
+    const retry=document.createElement("button");
+    retry.type="button";retry.className="outline cast-retry";
+    retry.textContent=say("إعادة توليد الجملة", "Retry this line");
+    retry.addEventListener("click",async()=>{
+      if(!lastCompletedEpisode){
+        $("#episodeStatus").textContent=say("ولّدي الحلقة أولًا.", "Render the episode first.");
+        return;
+      }
+      if(!$("#episodeConsent").checked){
+        $("#episodeStatus").textContent=say("أكدي الإذن باستعمال الصوت.", "Confirm permission to use the voice.");
+        return;
+      }
+      retry.disabled=true;
+      const body=new FormData();
+      body.set("text",node.querySelector(".cast-text").value);
+      body.set("delivery",node.querySelector(".cast-delivery").value);
+      body.set("consent","true");
+      const number=Array.from(lineHost.children).indexOf(node)+1;
+      try{
+        const result=await request(
+          "/api/cast/episodes/"+encodeURIComponent(lastCompletedEpisode)+"/retry/"+number,
+          {method:"POST",body});
+        $("#episodeStatus").textContent=say("توليد جملة واحدة...", "Re-rendering one line...");
+        await watchJob(result.id);
+      }catch(error){$("#episodeStatus").textContent=err(error);}
+      finally{retry.disabled=false;}
+    });
+    const tools=document.createElement("div");tools.className="cast-line-tools";
+    tools.append(retry,remove);header.append(label,tools);
     const speaker = document.createElement("select");speaker.className="cast-speaker";
     speaker.required=true;
     fillSpeaker(speaker);
@@ -168,6 +197,84 @@
     }catch(error){status.textContent=err(error);}
     finally{button.disabled=false;}
   });
+
+  function collectDialogue() {
+    const lines=[];let total=0;
+    for(const node of lineHost.querySelectorAll(".cast-line")){
+      const text=node.querySelector(".cast-text").value.trim();
+      const character_id=node.querySelector(".cast-speaker").value;
+      if(!text || !character_id)throw Error(say("كل جملة تحتاج شخصية ونصًا.", "Each line needs a character and text."));
+      const pause_ms=Number(node.querySelector(".cast-pause").value);
+      if(!Number.isInteger(pause_ms)||pause_ms<0||pause_ms>2000)throw Error("Invalid pause (0-2000ms)");
+      total+=text.length;
+      lines.push({character_id,text,delivery:node.querySelector(".cast-delivery").value,pause_ms});
+    }
+    if(!lines.length||lines.length>48||total>6000)throw Error("Episode limit: 48 lines / 6000 characters");
+    return lines;
+  }
+  function clearEpisodePlayback() {
+    lastCompletedEpisode=null;
+    for(const id of ["episodePreview","episodeZip","episodeSrt","checkSpeaker","speakerReport"])$("#"+id).hidden=true;
+  }
+  async function refreshProjects(preferred=null) {
+    const chosen=preferred===null?$("#episodeProjectSelect").value:preferred;
+    const list=(await request("/api/cast/projects")).projects;
+    options($("#episodeProjectSelect"),list.map(p=>({value:p.id,label:p.title+" · v"+p.version})),
+      say("مشروع جديد", "New script"),chosen);
+  }
+  $("#loadEpisodeProject").addEventListener("click",async()=>{
+    const id=$("#episodeProjectSelect").value;
+    if(!id){
+      $("#episodeProjectStatus").textContent=say("اختاري مشروعًا محفوظًا.", "Choose a saved project.");
+      return;
+    }
+    try{
+      const project=(await request("/api/cast/projects/"+encodeURIComponent(id))).project;
+      await refreshCharacters();
+      $("#episodeProjectTitle").value=project.title;
+      selectedProjectVersion=project.version;
+      lineHost.replaceChildren();
+      for(const line of project.lines){
+        addLine();const node=lineHost.lastElementChild;
+        node.querySelector(".cast-speaker").value=line.character_id;
+        node.querySelector(".cast-text").value=line.text;
+        node.querySelector(".cast-delivery").value=line.delivery;
+        node.querySelector(".cast-pause").value=String(line.pause_ms);
+      }
+      const missing=project.lines.some((line,i)=>
+        lineHost.children[i].querySelector(".cast-speaker").value!==line.character_id);
+      $("#episodeProjectStatus").textContent=missing
+        ?say("بعض الشخصيات حُذفت؛ أعيدي تعيينها.", "Some characters were deleted; reassign them.")
+        :say("تم فتح السيناريو.", "Saved script loaded.");
+      clearEpisodePlayback();
+    }catch(error){$("#episodeProjectStatus").textContent=err(error);}
+  });
+  $("#saveEpisodeProject").addEventListener("click",async()=>{
+    const button=$("#saveEpisodeProject");button.disabled=true;
+    try{
+      const lines=collectDialogue(),title=$("#episodeProjectTitle").value.trim();
+      const id=$("#episodeProjectSelect").value;
+      const payload={title,lines,...(id?{expected_version:selectedProjectVersion}:{})};
+      const result=await request(id?"/api/cast/projects/"+encodeURIComponent(id):"/api/cast/projects",
+        {method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      selectedProjectVersion=result.project.version;
+      await refreshProjects(result.project.id);
+      $("#episodeProjectStatus").textContent=say("حُفظ الإصدار ", "Saved version ")+result.project.version;
+    }catch(error){$("#episodeProjectStatus").textContent=err(error);}
+    finally{button.disabled=false;}
+  });
+  $("#deleteEpisodeProject").addEventListener("click",async()=>{
+    const id=$("#episodeProjectSelect").value;
+    if(!id)return;
+    if(!confirm(say("حذف السيناريو المحفوظ؟", "Delete this saved script?")))return;
+    try{
+      await request("/api/cast/projects/"+encodeURIComponent(id),{method:"DELETE"});
+      selectedProjectVersion=null;await refreshProjects("");
+      $("#episodeProjectStatus").textContent=say("حُذف السيناريو، وبقيت الأصوات.", "Deleted script; character voices are retained.");
+    }catch(error){$("#episodeProjectStatus").textContent=err(error);}
+  });
+  $("#episodeProjectSelect").addEventListener("change",()=>{selectedProjectVersion=null;});
+
   $("#addCastLine").addEventListener("click",addLine);
   $("#castForm").addEventListener("submit",async event => {
     event.preventDefault();
@@ -265,10 +372,11 @@
     finally{button.disabled=false;}
   });
   document.querySelector('.nav[data-tab="cast"]').addEventListener("click",async()=>{
-    try{await refreshVoices();await refreshCharacters();}
+    try{await refreshVoices();await refreshCharacters();await refreshProjects();}
     catch(error){$("#castStatus").textContent=err(error);}
   });
   addLine();
+  Promise.resolve().then(refreshProjects).catch(error=>{$("#episodeProjectStatus").textContent=err(error);});
   Promise.resolve().then(refreshVoices).then(refreshCharacters).catch(error=>{
     $("#castStatus").textContent=err(error);
   });

@@ -75,6 +75,18 @@
 <div class="cast-actions"><div><h3 data-ar="سيناريو الحلقة" data-en="Episode dialogue">سيناريو الحلقة</h3>
 <p class="hint" data-ar="حتى 48 جملة و6,000 حرف. تعليمات المشاعر تعمل مع Qwen CustomVoice الجاهز؛ Qwen Clone يحافظ على الصوت المرجعي لكن لا يدعم التعليمات الانفعالية لكل جملة." data-en="Up to 48 dialogue lines and 6,000 total characters. Performance cues approximate model controls; they are not guaranteed emotional styles.">حتى 48 جملة و6,000 حرف إجمالًا. التوجيهات تقريبية عبر إعدادات Chatterbox، وليست وسوم انفعالات مضمونة.</p></div>
 <button id="addCastLine" type="button" class="outline" data-ar="+ إضافة جملة" data-en="+ Add dialogue line">+ إضافة جملة</button></div>
+<div class="project-toolbar" aria-label="Saved cartoon scripts">
+<label for="episodeProjectTitle" data-ar="عنوان مشروع الحلقة" data-en="Episode project name">عنوان مشروع الحلقة</label>
+<input id="episodeProjectTitle" type="text" maxlength="80" placeholder="Frustration — Episode 01">
+<label for="episodeProjectSelect" data-ar="المشاريع المحفوظة" data-en="Saved scripts">المشاريع المحفوظة</label>
+<select id="episodeProjectSelect"><option value="" data-ar="مشروع جديد" data-en="New project">مشروع جديد</option></select>
+<div class="project-buttons">
+<button id="saveEpisodeProject" type="button" class="outline" data-ar="حفظ السيناريو" data-en="Save script">حفظ السيناريو</button>
+<button id="loadEpisodeProject" type="button" class="outline" data-ar="فتح المشروع" data-en="Load project">فتح المشروع</button>
+<button id="deleteEpisodeProject" type="button" class="outline" data-ar="حذف المشروع" data-en="Delete project">حذف المشروع</button>
+</div>
+<p class="hint" id="episodeProjectStatus" role="status" data-ar="احفظي السيناريو محليًا لاستعادته بعد إغلاق الصفحة، حتى بدون محرك GPU." data-en="Save your script locally and reopen it later—even without an installed GPU model.">احفظي السيناريو محليًا لاستعادته بعد إغلاق الصفحة، حتى بدون محرك GPU.</p>
+</div>
 <form id="episodeForm" class="form">
 <div id="episodeLines" class="episode-lines" aria-live="polite"></div>
 <label class="consent"><input type="checkbox" id="episodeConsent" required><span data-ar="أملك الإذن باستخدام جميع أصوات الشخصيات في هذه الحلقة." data-en="I have permission to synthesize every character in this episode.">أملك الإذن باستخدام جميع أصوات الشخصيات في هذه الحلقة.</span></label>

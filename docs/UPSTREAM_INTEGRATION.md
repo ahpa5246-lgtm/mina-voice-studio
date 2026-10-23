@@ -19,3 +19,7 @@
 ### Meta Demucs via TTS-WebUI's source-separation ecosystem
 
 Use original [facebookresearch/demucs](https://github.com/facebookresearch/demucs) (MIT copyright Meta Platforms, Inc.) through `python -m demucs --two-stems vocals -n htdemucs` in an isolated Python venv. Similar source separation is available in TTS-WebUI extensions. Mina's adapter verifies two actual WAV outputs and packages ZIP only on success. CI mocks the external CLI but operates on actual WAV fixtures, so it does **not** demonstrate separation quality, GPU inference, or compatibility with every Demucs dependency revision. The original Demucs GitHub repository is archived.
+
+## High-quality mixed-model episode assembly
+
+Voice episodes use the independent [Python-SoXR](https://github.com/dofuuz/python-soxr) implementation of libsoxr (`soxr.resample(..., quality="HQ")`) to convert PCM16 audio between engine sample rates. The binding and bundled libsoxr are LGPL-2.1-or-later, not MIT; the package is an external runtime dependency, not a copy of its implementation. NumPy handles mono/stereo PCM16 channel conversion and safe clipping. Unit tests verify sample rates and nondestructive per-line regeneration; no perceptual human-listening claim is implied.

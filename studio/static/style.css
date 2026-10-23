@@ -42,3 +42,14 @@
 #episodeProgress{font-variant-numeric:tabular-nums;padding:7px 0}
 #episodePreview{width:100%;margin-top:13px}
 @media(max-width:720px){.cast-line-actions{grid-template-columns:1fr}.cast-actions{align-items:start;flex-direction:column}.cast-downloads{flex-direction:column}}
+
+/* Editable script projects and nondestructive line repair */
+.project-toolbar{display:grid;grid-template-columns:minmax(170px,1fr) minmax(190px,1fr);gap:10px 14px;padding:17px;border-radius:14px;margin:16px 0;background:#10213a;border:1px solid #355276}
+.project-toolbar label{align-self:end;font-weight:600}
+.project-toolbar input,.project-toolbar select{width:100%;background:#091a30;color:#eaf6ff;border:1px solid #44617f;border-radius:9px;padding:12px;min-width:0}
+.project-buttons{display:flex;flex-wrap:wrap;gap:8px;grid-column:1/-1}
+.project-buttons button{flex:1;min-width:130px}
+#episodeProjectStatus{grid-column:1/-1;margin:0;overflow-wrap:anywhere}
+.cast-line-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cast-line-tools button{font-size:.8rem}
+@media(max-width:650px){.project-toolbar{grid-template-columns:1fr}.project-buttons{flex-direction:column}.cast-line-tools{flex-direction:column;align-items:end}}
