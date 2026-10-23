@@ -35,7 +35,7 @@ def test_interface_has_real_workflows_and_no_duplicate_ids():
     parser = AuditParser()
     parser.feed(HTML)
     assert parser.dir == "rtl"
-    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm", "trainingForm"}
+    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm", "trainingForm", "rvcBatchForm", "rvcBlendForm"}
     assert len(parser.ids) == len(set(parser.ids))
 
 
@@ -74,3 +74,9 @@ def test_every_rendered_form_has_a_javascript_submit_handler():
         assert '$("#' + name + '").addEventListener("submit"' in extras, name
     for name in ["speechForm", "convertForm"]:
         assert '$("#' + name + '").addEventListener("submit"' in JS, name
+
+def test_applio_workspace_uses_real_post_handlers():
+    script=(ROOT / "studio/static/applio.js").read_text(encoding="utf-8")
+    for form in ("rvcBatchForm","rvcBlendForm"):
+        assert f'$("#{form}").addEventListener("submit"' in script
+    assert '<script src="/assets/applio.js"' in HTML

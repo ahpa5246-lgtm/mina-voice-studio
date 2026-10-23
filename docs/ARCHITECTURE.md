@@ -44,3 +44,11 @@
 - Refuse foreign-origin form posts and unrecognized hosts; these checks are not authentication.
 - Uploaded signatures and WAV headers are validated, and output must be a readable WAV.
 - Long text uses short pauses and 10ms fades; continuity across sections is not yet perceptually tested.
+
+### Applio native backend integrations
+
+- `studio.applio_advanced` handles argument validation and isolated upstream subprocesses for single and batch inference, model blending, pitch estimation, indexing, optional autotune, and native cleanup.
+- `scripts/applio_native_worker.py` imports **original** Applio `core.py` at runtime. This is not an independently reverse-engineered reimplementation. Licensing/attribution to IAHispano is retained.
+- `studio.applio_api` offers `/api/applio/batch`, `/api/applio/blend` and download. Filename upload paths are regenerated; model IDs resolve only to locally discovered Applio model files.
+- Valid WAV output is required before batch ZIP success. Model blending requires a nonempty new checkpoint. Real GPU inference tests remain necessary for upstream compatibility.
+- Applio upstream does include realtime code, but browser streaming, low latency and device routing have **not** been integrated into Mina and are explicitly disabled.

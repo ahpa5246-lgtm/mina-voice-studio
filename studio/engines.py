@@ -152,21 +152,9 @@ def synthesize(*, text_file: Path, reference: Path | None, language: str, output
         raise EngineError("Engine completed without producing a usable WAV file.")
 
 
-def convert(*, audio: Path, model_id: str, output: Path) -> None:
-    root = applio_root()
-    if not root:
-        raise EngineError("Set APPLIO_ROOT to your locally installed Applio directory.")
-    model, index = resolve_model(model_id)
-    command = [
-        _python("APPLIO_PYTHON"),
-        str(ROOT / "scripts" / "applio_worker.py"),
-        "--root", str(root),
-        "--input", str(audio),
-        "--output", str(output),
-        "--model", str(model),
-    ]
-    if index:
-        command += ["--index", str(index)]
-    _execute(command, cwd=root)
-    if not output.is_file() or output.stat().st_size < 44:
-        raise EngineError("Applio completed without producing a usable WAV file.")
+def convert(*, audio: Path, model_id: str, output: Path,
+            settings: dict | None = None) -> None:
+    """Delegate to upstream Applio without mixing its dependencies with our server."""
+    from studio.applio_advanced import convert_one, validate_settings
+    return convert_one(audio=audio, model_id=model_id, output=output,
+                       settings=settings or validate_settings())

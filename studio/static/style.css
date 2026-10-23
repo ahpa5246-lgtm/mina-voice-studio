@@ -13,3 +13,17 @@
 .transcript-text{width:100%;background:#091427;border:1px solid #32415b;border-radius:12px;color:#ebf4ff;padding:14px;font:inherit;resize:vertical;line-height:1.9}
 #toolList{margin-top:18px}.mini-state{display:grid;gap:4px;min-width:0}.mini-state strong{color:#e8f4ff}.mini-state small{font-size:11px;color:#a2b5d0}.mini-state em{font-style:normal;font-size:11px;color:#85dabe}
 .extra-card a,.card a{word-break:break-word}
+
+.advanced-applio{margin:18px 0;border:1px solid #2d4865;padding:16px;border-radius:12px;background:#102038}
+.advanced-applio summary{color:#9acbff;font-weight:600;cursor:pointer}
+.advanced-applio .inputs{margin-top:16px}
+#rvcBatchForm,#rvcBlendForm{min-height:400px}
+#rvcBatchStatus,#rvcBlendStatus{overflow-wrap:anywhere;margin-top:15px}
+
+/* Keep language toggle and tools reachable when the navigation grows. */
+@media(min-width:701px){
+  .side{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#385774 transparent}
+  .side nav{flex-shrink:0}
+  .side .nav{padding:10px 12px}
+  .side-bottom{flex-shrink:0;padding-top:22px}
+}

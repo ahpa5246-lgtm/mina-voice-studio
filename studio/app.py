@@ -256,14 +256,27 @@ async def make_conversion(
     audio: UploadFile = File(...),
     model_id: str = Form(...),
     consent: bool = Form(False),
+    pitch: int = Form(0),
+    index_rate: float = Form(0.3),
+    protect: float = Form(0.33),
+    f0_method: str = Form("rmvpe"),
+    autotune: bool = Form(False),
+    cleanup: str = Form("off"),
+    cleanup_strength: float = Form(12.0),
 ):
     if not consent:
-        raise HTTPException(422, "Confirm that you have permission to use this voice.")
+        raise HTTPException(422, "Confirm permission to use this voice.")
     if not _configured("applio"):
-        raise HTTPException(503, "Applio and a voice model must be configured.")
+        raise HTTPException(503, "Applio and an RVC voice model must be configured.")
+    from studio.applio_advanced import validate_settings
     try:
         engines.resolve_model(model_id)
-    except engines.EngineError as exc:
+        settings = validate_settings(
+            pitch=pitch, index_rate=index_rate, protect=protect,
+            f0_method=f0_method, autotune=autotune,
+            cleanup=cleanup, cleanup_strength=cleanup_strength,
+        )
+    except (engines.EngineError, ValueError) as exc:
         raise HTTPException(422, str(exc)) from exc
     job_id, directory = _new_job("applio")
     try:
@@ -271,7 +284,9 @@ async def make_conversion(
     except Exception:
         _discard_job(job_id)
         raise
-    _schedule(engines.convert, job_id, audio=audio_path, model_id=model_id, output=directory / "output.wav")
+    _schedule(engines.convert, job_id, audio=audio_path,
+              model_id=model_id, output=directory / "output.wav",
+              settings=settings)
     return {"id": job_id, "status": "queued"}
 
 
@@ -298,3 +313,6 @@ def job_audio(job_id: str):
 # Extra audio workspaces share the same bounded queue and safety middleware.
 from studio.extras import router as extra_router
 app.include_router(extra_router)
+
+from studio.applio_api import router as applio_router
+app.include_router(applio_router)

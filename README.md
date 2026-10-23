@@ -7,7 +7,9 @@ An Arabic-first, local-first open-source voice workstation. This is a developmen
 | Workspace | Actual implementation | Dependencies / limitations |
 | --- | --- | --- |
 | Multilingual TTS & voice cloning | Chatterbox V3 speech worker, long-text chunking, optional voice reference | Separate runtime; no GPU quality benchmark |
-| Voice conversion | Runs Applio RVC on an uploaded recording | Installed model and separate Applio runtime |
+| Voice conversion | Runs upstream Applio RVC with pitch shift, indexing, RMVPE/FCPE/CREPE, Autotune, and native Light/Speech cleanup | Installed model and separately installed Applio environment |
+| Applio batch conversion | Converts 2–8 audio files via upstream batch inference, validates WAV outputs and downloads a ZIP | Installed Applio models and runtime |
+| Applio model blender | Merges two compatible RVC checkpoints using Applio's own blender, refusing overwrites | Models with compatible architectures |
 | Voice library | Save, list, preview, delete consented voice references | Stored locally in data/_voices |
 | Audio enhancement | High-pass, peak normalization and optional gate on real PCM-16 samples | Conventional DSP, not neural denoising |
 | Audio analysis | Clipping, silence, RMS, peak and duration | PCM-16 WAV only |
@@ -55,3 +57,7 @@ These are application and signal-processing tests, **not 1,000 model-inference r
 - Only upload, convert or train on speakers whose permission you have.
 - This repository's original code is MIT-licensed; installed upstream model licenses and terms still apply.
 - Projects: [Chatterbox](https://github.com/resemble-ai/chatterbox), [Applio](https://github.com/IAHispano/Applio), [TTS-WebUI](https://github.com/rsxdalv/TTS-WebUI), [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS), [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper).
+
+### Upstream Applio compatibility
+
+This integration **calls the original Applio code** from a separate installation via `scripts/applio_native_worker.py` and does not redistribute upstream GPU weights. It uses Applio's native `core.run_infer_script`, `core.run_batch_infer_script`, and `core.run_model_blender_script`. On-demand Light cleanup can require FFmpeg; Speech cleanup may download DeepFilterNet components on the user machine. DeepFilterNet is not the same as music/vocal source separation. Live voice streaming and vocal/instrument splitting are **not integrated** into Mina yet. Until tested against real RVC weights, call status configured, not audio-verified.
