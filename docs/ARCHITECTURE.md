@@ -25,7 +25,7 @@
 
 - Actual WAV synthesis quality and Iraqi dialect fidelity are untested.
 - Chatterbox loads V3 model for every generation request: first-run downloads and startup costs are high.
-- No persistent queue after application restart.
+- No persistent queue after application restart, and a maximum of 5 queued/running jobs.
 - Uploads validate filename extension and length but do not inspect audio file signatures or duration. Keep service local.
 - Applio integration assumes the official core.py run_infer_script API; upstream changes may require adaptation.
 - More advanced audio editing, real-time conversion, long-text segmentation, TTS-WebUI and GPT-SoVITS adapters are not built yet.

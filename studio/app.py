@@ -151,7 +151,9 @@ async def _save_audio(upload: UploadFile, destination: Path) -> Path:
                 if amount > MAX_UPLOAD_BYTES:
                     raise HTTPException(413, "Audio file exceeds the 25 MB limit.")
                 stream.write(chunk)
-        if amount < 44 or not _valid_signature(suffix, path.read_bytes()[:32]):
+        with path.open("rb") as source:
+            header = source.read(32)
+        if amount < 44 or not _valid_signature(suffix, header):
             raise HTTPException(422, "Unrecognized or empty audio file.")
         if suffix == ".wav":
             try:

@@ -5,6 +5,11 @@ All generated segments retain upstream neural watermarking.
 """
 import argparse
 from pathlib import Path
+import sys
+
+# Ensure the workspace text-normalization module is available in the model venv.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import torch
 import torchaudio as ta
 

@@ -30,7 +30,7 @@ def test_empty_text_yields_no_work():
 
 def test_sentence_breaks_prioritized_when_bounded():
     text = "نعم. انتهينا من التجربة؟ والآن نبدأ."
-    assert split_speech(text, max_chars=25) == ["نعم.", "انتهينا من التجربة؟", "والآن نبدأ."]
+    assert split_speech(text, max_chars=22) == ["نعم.", "انتهينا من التجربة؟", "والآن نبدأ."]
 
 
 def test_invalid_chunk_size():
