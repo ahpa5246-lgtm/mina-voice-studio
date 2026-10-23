@@ -337,3 +337,8 @@ def unload_chatterbox():
             raise HTTPException(409,"A Chatterbox job is active; cannot unload its weights.")
         release()
     return {"unloaded": True}
+
+
+# Consent-aware cartoon cast, multi-speaker dialogue and episode exports.
+from studio.cast_api import router as cast_router
+app.include_router(cast_router)

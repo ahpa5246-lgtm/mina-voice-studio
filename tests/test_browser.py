@@ -90,8 +90,8 @@ def page(browser, site):
 def test_ui_loads_all_nine_real_workspaces(page):
     current, errors = page
     assert current.title() == "Mina Voice Studio"
-    assert current.locator(".nav").count() == 11
-    assert current.locator(".tab").count() == 11
+    assert current.locator(".nav").count() == 12
+    assert current.locator(".tab").count() == 12
     assert current.locator("#speech").is_visible()
     assert not errors, errors
 
@@ -258,4 +258,37 @@ def test_demucs_page_reports_missing_model_instead_of_fake_stems(page):
        return text.includes('Demucs') || text.includes('503');
     }""",timeout=15000)
     assert current.locator("#stemsDownload").is_hidden()
+    assert not errors,errors
+
+def test_cartoon_cast_creates_character_and_rejects_false_audio(page):
+    current, errors = page
+    current.locator('.nav[data-tab="cast"]').click()
+    current.locator("#castName").fill("Shoko")
+    current.locator('#castForm input[name="consent"]').check()
+    current.locator('#castForm button[type="submit"]').click()
+    current.wait_for_function("""() => document.querySelector("#castList").textContent.includes("Shoko")""", timeout=15000)
+    assert current.locator(".cast-line").count() == 1
+    current.locator("#addCastLine").click()
+    assert current.locator(".cast-line").count() == 2
+    current.locator(".cast-text").nth(0).fill("Hello everyone.")
+    current.locator(".cast-text").nth(1).fill("We are making a cartoon.")
+    current.locator("#episodeConsent").check()
+    current.locator('#episodeForm button[type="submit"]').click()
+    current.wait_for_function("""() => {
+      const message=document.querySelector('#episodeStatus').textContent;
+      return message.includes('Chatterbox') || message.includes('503');
+    }""",timeout=15000)
+    assert current.locator("#episodeZip").is_hidden()
+    assert current.locator("#episodeSrt").is_hidden()
+    assert not errors,errors
+
+
+def test_cartoon_turbo_model_enforces_english_and_reference(page):
+    current,errors=page
+    current.locator('.nav[data-tab="cast"]').click()
+    current.locator("#castModel").select_option("turbo")
+    assert current.locator("#castLang").input_value()=="en"
+    assert current.locator("#castVoice").get_attribute("required") is not None
+    current.locator("#castModel").select_option("multilingual-v3")
+    assert current.locator("#castVoice").get_attribute("required") is None
     assert not errors,errors
