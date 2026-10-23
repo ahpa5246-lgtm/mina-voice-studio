@@ -85,7 +85,7 @@ def _cleanup_expired_locked() -> None:
         shutil.rmtree(DATA / job_id, ignore_errors=True)
     # Reclaim stale job directories left from earlier server lifetimes.
     for directory in DATA.iterdir():
-        if directory.name in jobs or not directory.is_dir():
+        if directory.name in jobs or directory.name.startswith("_") or not directory.is_dir():
             continue
         try:
             age = now - directory.stat().st_mtime
@@ -294,3 +294,7 @@ def job_audio(job_id: str):
     if not output.is_file():
         raise HTTPException(404, "Audio output was not found.")
     return FileResponse(output, media_type="audio/wav", filename=f"mina-voice-{job_id[:8]}.wav")
+
+# Extra audio workspaces share the same bounded queue and safety middleware.
+from studio.extras import router as extra_router
+app.include_router(extra_router)
