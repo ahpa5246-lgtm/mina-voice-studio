@@ -65,7 +65,7 @@ async function submit(form,endpoint,prefix,engine){
 all(".nav").forEach((b)=>b.addEventListener("click",()=>display(b.dataset.tab)));
 $("#lang").addEventListener("click",()=>{locale=locale==="ar"?"en":"ar";translate();});
 $("#text").addEventListener("input",()=>{$("#counter").textContent=$("#text").value.length+" / 6000";});
-$("#counter").textContent=$("#text").value.length+" / 300";
+$("#counter").textContent=$("#text").value.length+" / 6000";
 $("#refresh").addEventListener("click",refresh);
 $("#speechForm").addEventListener("submit",(ev)=>{ev.preventDefault();submit(ev.currentTarget,"/api/speech","speech","chatterbox");});
 $("#convertForm").addEventListener("submit",(ev)=>{ev.preventDefault();submit(ev.currentTarget,"/api/convert","convert","applio");});

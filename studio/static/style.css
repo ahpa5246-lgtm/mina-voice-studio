@@ -2,3 +2,14 @@
 
 :where(a,button,input,select,textarea,summary):focus-visible{outline:2px solid #a5dbff;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.form input[type="text"],.form input[type="number"]{width:100%;border:1px solid #32415b;border-radius:11px;background:#0b1629;color:#edf6ff;padding:13px}
+.form .space{margin-top:25px}.form .tiny{margin-bottom:13px;width:100%}
+.extra-card{margin-top:23px}.stack-list{display:grid;gap:12px;margin-top:14px;min-height:30px}
+.voice-item{display:grid;gap:8px;padding:12px;border:1px solid #32415b;border-radius:12px;background:#0b1629}
+.voice-item header{display:flex;justify-content:space-between;gap:15px}.voice-item button{background:#3a2737;border:1px solid #765169;color:#ffc8d5;border-radius:8px;padding:6px 12px}
+.voice-item audio{width:100%}.inline-upload{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.inline-upload input{flex:1;min-width:220px}
+.report{white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto;background:#091427;color:#a9dcff;border-radius:12px;padding:18px;font-size:12px;min-height:38px;direction:ltr;text-align:left}
+.transcript-text{width:100%;background:#091427;border:1px solid #32415b;border-radius:12px;color:#ebf4ff;padding:14px;font:inherit;resize:vertical;line-height:1.9}
+#toolList{margin-top:18px}.mini-state{display:grid;gap:4px;min-width:0}.mini-state strong{color:#e8f4ff}.mini-state small{font-size:11px;color:#a2b5d0}.mini-state em{font-style:normal;font-size:11px;color:#85dabe}
+.extra-card a,.card a{word-break:break-word}
