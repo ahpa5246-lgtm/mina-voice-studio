@@ -32,3 +32,14 @@ Before training: version datasets, consent records, baseline audio, random seeds
 ## Security notes
 
 Loopback-only hosting, allowed hosts, origin checks and bounded queues reduce local exposure. This is not a public authenticated SaaS. Do not make the HTTP listener publicly reachable without an authentication layer, rate limiting, encryption at rest, data retention controls and abuse investigation.
+
+## Training dataset inspection
+
+Keep licensed, consented WAV recordings in a **private** local dataset folder. Example JSONL manifest record:
+
+```json
+{"audio":"clips/001.wav","text":"هلا، شلونك؟","language":"ar","speaker_id":"speaker1","consent":true,"split":"train"}
+```
+
+Audit the manifest with `python scripts/dataset_audit.py --root PRIVATE_DATASET_DIR --manifest PRIVATE_DATASET_DIR/manifest.jsonl`.
+The check validates paths, basic WAV format and consent *declarations*. It does not train a model or independently verify consent.

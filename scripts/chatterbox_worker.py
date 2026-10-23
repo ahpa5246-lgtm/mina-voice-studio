@@ -41,6 +41,11 @@ def main():
     if args.reference:
         kwargs["audio_prompt_path"] = args.reference
 
+    # Avoid recomputing the speaker embedding for every chunk.
+    if args.reference:
+        model.prepare_conditionals(args.reference, exaggeration=args.exaggeration)
+        kwargs.pop("audio_prompt_path", None)
+
     waveforms = []
     silence_samples = int(model.sr * 0.14)
     with torch.inference_mode():
@@ -51,6 +56,11 @@ def main():
                 raise RuntimeError("Model produced an invalid audio tensor.")
             if not torch.isfinite(wav).all():
                 raise RuntimeError("Model produced a non-finite audio tensor.")
+            # Taper both edges to minimize discontinuities at concatenation.
+            fade = min(int(model.sr * 0.01), wav.shape[1] // 2)
+            if fade > 0:
+                wav[:, :fade] *= torch.linspace(0, 1, fade, dtype=wav.dtype).unsqueeze(0)
+                wav[:, -fade:] *= torch.linspace(1, 0, fade, dtype=wav.dtype).unsqueeze(0)
             if i:
                 waveforms.append(torch.zeros((1, silence_samples), dtype=wav.dtype))
             waveforms.append(wav)

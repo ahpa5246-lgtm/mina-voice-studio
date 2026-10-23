@@ -37,3 +37,10 @@
 - TTS-WebUI: https://github.com/rsxdalv/TTS-WebUI
 - GPT-SoVITS: https://github.com/RVC-Boss/GPT-SoVITS
 - XTTS-WebUI: https://github.com/daswer123/xtts-webui
+
+### Release 0.2 hardening
+- A bounded five-job queue protects the single GPU worker.
+- Additional jobs get HTTP 429; completed jobs older than 24h are cleaned during admission of new jobs, including old process directories.
+- Refuse foreign-origin form posts and unrecognized hosts; these checks are not authentication.
+- Uploaded signatures and WAV headers are validated, and output must be a readable WAV.
+- Long text uses short pauses and 10ms fades; continuity across sections is not yet perceptually tested.

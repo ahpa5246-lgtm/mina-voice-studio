@@ -32,3 +32,7 @@ Open http://127.0.0.1:7860 and inspect the **Engines** tab to see which backends
 Mina Voice Studio's original integration code is MIT-licensed. Chatterbox (MIT), Applio (MIT), and any other model/runtime remain independently installed and under their own licenses; check third-party model weights and conditions before distribution. This repository does not bundle or relicense upstream models.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Preparing an ethical fine-tuning dataset
+
+`scripts/dataset_audit.py` checks that local WAV clips have transcripts, speaker IDs, train/validation/test split tags and an explicit consent declaration. See [evaluation protocol](docs/EVALUATION.md). **No new model weights have been trained yet.**

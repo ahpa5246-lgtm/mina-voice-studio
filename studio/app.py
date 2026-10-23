@@ -58,6 +58,11 @@ async def local_origin_guard(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; script-src 'self'; style-src 'self'; "
+        "connect-src 'self'; img-src 'self' data:; media-src 'self' blob:; "
+        "object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    )
     if request.url.path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-store"
     return response
@@ -78,6 +83,16 @@ def _cleanup_expired_locked() -> None:
     for job_id in removable:
         jobs.pop(job_id, None)
         shutil.rmtree(DATA / job_id, ignore_errors=True)
+    # Reclaim stale job directories left from earlier server lifetimes.
+    for directory in DATA.iterdir():
+        if directory.name in jobs or not directory.is_dir():
+            continue
+        try:
+            age = now - directory.stat().st_mtime
+        except OSError:
+            continue
+        if age > JOB_TTL_SECONDS:
+            shutil.rmtree(directory, ignore_errors=True)
 
 
 def _record(job_id: str, **changes) -> None:
