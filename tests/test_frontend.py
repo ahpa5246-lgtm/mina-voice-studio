@@ -35,7 +35,7 @@ def test_interface_has_real_workflows_and_no_duplicate_ids():
     parser = AuditParser()
     parser.feed(HTML)
     assert parser.dir == "rtl"
-    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm"}
+    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm", "trainingForm"}
     assert len(parser.ids) == len(set(parser.ids))
 
 

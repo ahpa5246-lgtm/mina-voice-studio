@@ -53,3 +53,9 @@ python scripts/smoke_audio.py --operation speech --language ar --text "أهلً�
 ```
 
 Use `--operation conversion --audio INPUT.wav --model-id MODEL_ID` for installed Applio. Both operations call **real** engine workers and emit WAV timing, real-time factor, clipping and silence diagnostics. Neither test measures dialect naturalness or speaker similarity. GPU inference and model-weight downloads have not been executed in GitHub Actions.
+
+## Applio training from the web UI
+
+Configure APPLIO_ROOT, APPLIO_PYTHON and APPLIO_TRAIN_DATA to a local dataset with a consent manifest, ten or more clips and all three train/validation/test splits. The website can launch original Applio preprocess, extract and train commands in its bounded one-worker queue. It checks for non-empty RVC checkpoints and keeps a per-job log.
+
+CI mocks the Applio CLI to verify orchestration. No acoustic training run or GPU checkpoint validation was carried out in the CI environment. Model accuracy must be evaluated using permissioned data and blinded listening tests.

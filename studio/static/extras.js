@@ -20,6 +20,7 @@ async function watchJob(id, statusNode, audioNode, linkNode, textNode){
     if(result.status==="failed") throw Error(result.error || "Unknown engine error");
     if(result.status==="completed"){
       statusNode.textContent=text("انتهت المعالجة بنجاح","Completed successfully");
+      if(result.training) statusNode.textContent += " — "+result.training.model_name+" ("+result.training.checkpoint_count+" checkpoints)";
       if(result.download&&audioNode&&linkNode){
         audioNode.src=result.download;audioNode.hidden=false;
         linkNode.href=result.download;linkNode.hidden=false;

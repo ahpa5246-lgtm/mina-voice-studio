@@ -1,38 +1,57 @@
 # Mina Voice Studio
 
-An Arabic-first, local-first open-source voice production workstation.
+An Arabic-first, local-first open-source voice workstation. This is a development build, **not a validated replacement for ElevenLabs**. Model weights, training data, and other upstream software are installed separately.
 
-**Project status: early functional integration (not a finished ElevenLabs alternative).** The initial app provides a unified RTL/English interface, bounded queued jobs, a Chatterbox Multilingual V3 speech-generation adapter, and an Applio RVC conversion adapter. Both adapters require their original software/models installed separately; no model weights are redistributed.
+## Tools and actual implementation status
 
-## Features
-- Arabic (RTL) and English interface, with voice-reference uploads and WAV playback/download.
-- Long-form text chunking (up to 6000 characters per job), with a short pause between chunks; acoustic continuity has not been validated.\n- Text-to-speech with [Resemble AI Chatterbox](https://github.com/resemble-ai/chatterbox), including Arabic via the multilingual V3 checkpoint.
-- File-based voice conversion with [Applio](https://github.com/IAHispano/Applio) and locally installed, user-authorized models.
-- Isolated subprocess adapters so incompatible model dependencies do not share one Python environment.
-- Explicit engine readiness checks, bounded sequential jobs, validated audio uploads, completed-job retention limits, and local-only default server.
-- Audio generation is opt-in and restricted to voices you own or have permission to use.
+| Workspace | Actual implementation | Dependencies / limitations |
+| --- | --- | --- |
+| Multilingual TTS & voice cloning | Chatterbox V3 speech worker, long-text chunking, optional voice reference | Separate runtime; no GPU quality benchmark |
+| Voice conversion | Runs Applio RVC on an uploaded recording | Installed model and separate Applio runtime |
+| Voice library | Save, list, preview, delete consented voice references | Stored locally in data/_voices |
+| Audio enhancement | High-pass, peak normalization and optional gate on real PCM-16 samples | Conventional DSP, not neural denoising |
+| Audio analysis | Clipping, silence, RMS, peak and duration | PCM-16 WAV only |
+| Speech transcription | Faster-Whisper worker for Arabic or English | Whisper installed separately and its weights downloaded |
+| Script dubbing | Produce narration from your manually translated script | Chatterbox installed; no auto translation or lip-sync |
+| TTS-WebUI API | Local OpenAI-compatible speech API connector | Needs separate API extension, model and voice selection |
+| GPT-SoVITS API | Calls local /tts with voice recording and prompt transcript | Server can access reference path; Arabic not enabled in this adapter |
+| Voice training | Audits consented local data, then launches Applio preprocess / extract / train and verifies checkpoint files | GPU and licensed dataset required; only command orchestration tested |
+| Microphone capture | Records a five-second PCM WAV to feed clip conversion | Browser microphone; **not live GPU conversion** |
+| Streaming voice changer | Not yet implemented | Persistent realtime transport/benchmark required |
 
-## Quick start
-Requires Python 3.11+ and separate engine environments.
+## Installation
 
-```bash
-git clone https://github.com/ahpa5246-lgtm/mina-voice-studio.git
-cd mina-voice-studio
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
-python -m uvicorn studio.app:app --host 127.0.0.1 --port 7860
-```
-Open http://127.0.0.1:7860 and inspect the **Engines** tab to see which backends need configuration. Follow [docs/INSTALL_AR.md](docs/INSTALL_AR.md) for engine setup.
+Python 3.11/3.12 is recommended. Create a virtual environment, install requirements.txt and launch the loopback server:
 
-> **Limitations:** This initial release is an integration MVP. It has not been benchmarked against ElevenLabs or evaluated on Iraqi Arabic pronunciation. No public cloud demo or permanent voice library has been deployed. GPT-SoVITS and TTS-WebUI are tracked as planned adapters, not presented as working integrations.
+    git clone https://github.com/ahpa5246-lgtm/mina-voice-studio.git
+    cd mina-voice-studio
+    python -m venv .venv
+    # Activate .venv for your OS
+    python -m pip install -r requirements.txt
+    python -m uvicorn studio.app:app --host 127.0.0.1 --port 7860
 
-## Quality assurance\n- Test API, security boundaries, text segmentation, model catalog and error behavior with `pytest`.\n- `scripts/quality_report.py` calculates clipping, silence and RMS from local WAV outputs. These technical checks do not establish voice similarity, Arabic comprehension or human-level naturalness.\n- Genuine acoustic benchmarking and model fine-tuning require an appropriately licensed speech dataset and real GPU inference.\n\n## Upstream credits & licensing
-Mina Voice Studio's original integration code is MIT-licensed. Chatterbox (MIT), Applio (MIT), and any other model/runtime remain independently installed and under their own licenses; check third-party model weights and conditions before distribution. This repository does not bundle or relicense upstream models.
+Open http://127.0.0.1:7860. The interface starts without large models, but the relevant model workflows return clear errors until separately configured.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+### Detailed documentation
 
-## Preparing an ethical fine-tuning dataset
+- [Arabic setup and new tool guide](docs/EXTRA_TOOLS_AR.md)
+- [Core setup instructions](docs/INSTALL_AR.md)
+- [Architecture and limitations](docs/ARCHITECTURE.md)
+- [Model training and acoustic evaluation protocol](docs/EVALUATION.md)
 
-`scripts/dataset_audit.py` checks that local WAV clips have transcripts, speaker IDs, train/validation/test split tags and an explicit consent declaration. See [evaluation protocol](docs/EVALUATION.md). **No new model weights have been trained yet.**
+## Regression and browser tests
+
+    python -m pip install -r requirements-dev.txt
+    python -m pytest -q
+
+CI runs **1,000 distinct deterministic PCM-16 WAV processing cases** plus API, permission and failure-path tests on Python 3.11 and 3.12. A separate headless Chromium job drives the real website and local server to test uploads, voice library operations and audio processing.
+
+These are application and signal-processing tests, **not 1,000 model-inference runs**. The CI jobs do not download or fine-tune Chatterbox, Whisper, GPT-SoVITS or Applio models. For actual on-device model benchmarking, use scripts/smoke_audio.py and docs/EVALUATION.md.
+
+## Privacy and licensing
+
+- The server is restricted to loopback by default and is not safe to publish as a multi-user SaaS without authentication and additional abuse protection.
+- Uploaded job recordings expire after 24 hours when a new job is admitted; saved voice references remain until you delete them.
+- Only upload, convert or train on speakers whose permission you have.
+- This repository's original code is MIT-licensed; installed upstream model licenses and terms still apply.
+- Projects: [Chatterbox](https://github.com/resemble-ai/chatterbox), [Applio](https://github.com/IAHispano/Applio), [TTS-WebUI](https://github.com/rsxdalv/TTS-WebUI), [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS), [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper).

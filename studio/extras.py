@@ -15,7 +15,7 @@ from uuid import uuid4
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from studio import audio_tools, engines, providers
+from studio import audio_tools, engines, providers, training
 from studio.text import normalize_text, MAX_DOCUMENT_CHARS
 
 router = APIRouter(prefix="/api")
@@ -90,8 +90,9 @@ def tool_status():
          "detail": "User supplies translated script, not automatic translation/synchronization"},
         {"id": "mic", "label": "Microphone clip capture",
          "ready": True, "detail": "Browser audio input; not low-latency live voice conversion"},
-        {"id": "training", "label": "Voice-model training",
-         "ready": False, "detail": "Use original Applio training workflow; no verified one-click training adapter"},
+        {"id": "training", "label": "Applio RVC training CLI",
+         "ready": training.status()["ready"],
+         "detail": training.status()["reason"] + "; GPU training has not been benchmarked"},
         {"id": "realtime", "label": "Streaming realtime voice changer",
          "ready": False, "detail": "No low-latency GPU streaming bridge implemented"},
     ] + providers.available()}
@@ -274,3 +275,66 @@ async def provider_speech(
                      reference=reference, prompt_text=prompt_text,
                      voice=voice, model=model, output=directory / "output.wav")
     return {"id": job, "status": "queued"}
+
+
+def _train_task(job: str, directory: Path, name: str,
+                epochs: int, batch: int, sample_rate: int, gpu: int) -> None:
+    """Run upstream Applio CLI in the already bounded single-worker queue."""
+    server = _app()
+    server._record(job, status="running", stage="preflight")
+    try:
+        result = training.run_training(
+            model_name=name, epochs=epochs, batch_size=batch,
+            sample_rate=sample_rate, gpu_index=gpu,
+            log=directory / "training.log",
+            on_stage=lambda stage: server._record(job, stage=stage)
+        )
+    except Exception as exc:
+        server._record(job, status="failed", error=str(exc)[:800])
+    else:
+        server._record(job, status="completed", training=result)
+
+
+@router.get("/training/status")
+def training_status():
+    return training.status()
+
+
+@router.post("/train", status_code=202)
+def launch_training(
+    model_name: str = Form(...), epochs: int = Form(40),
+    batch_size: int = Form(4), sample_rate: int = Form(40000),
+    gpu: int = Form(0), consent: bool = Form(False),
+    acknowledge: bool = Form(False),
+):
+    if not consent or not acknowledge:
+        raise HTTPException(422, "Speaker permission and long-running GPU training acknowledgement required.")
+    if not training.MODEL_NAME.fullmatch(model_name):
+        raise HTTPException(422, "Invalid model name.")
+    if not (10 <= epochs <= 2000 and 1 <= batch_size <= 16 and
+            sample_rate in {32000, 40000, 48000} and 0 <= gpu <= 7):
+        raise HTTPException(422, "Invalid training hyperparameters.")
+    readiness = training.status()
+    if not readiness["ready"]:
+        raise HTTPException(503, readiness["reason"])
+    root = engines.applio_root()
+    if (root / "logs" / model_name).exists():
+        raise HTTPException(409, "Model already exists; refusing to overwrite.")
+    server = _app()
+    job, directory = server._new_job("applio-training")
+    server.pool.submit(_train_task, job, directory, model_name,
+                       epochs, batch_size, sample_rate, gpu)
+    return {"id": job, "status": "queued", "note": "Training requested, not yet completed."}
+
+
+@router.get("/jobs/{job_id}/training-log")
+def training_log(job_id: str):
+    server = _app()
+    with server.job_lock:
+        job = server.jobs.get(job_id)
+        if job is None or job.get("engine") != "applio-training":
+            raise HTTPException(404, "Training job not found")
+    path = server.DATA / job_id / "training.log"
+    if not path.is_file():
+        raise HTTPException(404, "Training log not yet available")
+    return FileResponse(path, media_type="text/plain", filename="applio-training.log")

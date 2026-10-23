@@ -183,3 +183,17 @@ def test_responsive_mobile_navigation_without_page_overflow(browser, site):
     assert page.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 2")
     assert not errors, errors
     page.close()
+
+
+def test_training_launcher_shows_missing_setup_instead_of_fake_success(page):
+    current, errors = page
+    current.locator('.nav[data-tab="training"]').click()
+    current.locator("#trainName").fill("Mina_Model_123")
+    current.locator('#trainingForm input[name="consent"]').check()
+    current.locator('#trainingForm input[name="acknowledge"]').check()
+    current.locator('#trainingForm button[type="submit"]').click()
+    current.wait_for_function("""() => {
+      const msg = document.querySelector('#trainStatus').textContent;
+      return msg.includes('503') || msg.includes('APPLIO_TRAIN_DATA') || msg.includes('Install Applio');
+    }""", timeout=15000)
+    assert not errors, errors
