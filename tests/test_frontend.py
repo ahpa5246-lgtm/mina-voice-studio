@@ -35,7 +35,7 @@ def test_interface_has_real_workflows_and_no_duplicate_ids():
     parser = AuditParser()
     parser.feed(HTML)
     assert parser.dir == "rtl"
-    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm", "trainingForm", "rvcBatchForm", "rvcBlendForm", "stemsForm", "castForm", "episodeForm"}
+    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm", "trainingForm", "rvcBatchForm", "rvcBlendForm", "stemsForm", "castForm", "episodeForm", "qwenDesignForm"}
     assert len(parser.ids) == len(set(parser.ids))
 
 
@@ -102,3 +102,10 @@ def test_cast_ui_routes_to_real_episode_api():
     assert 'form.addEventListener("submit"' not in script or 'addCastLine' in script
     assert 'id="castForm"' in HTML and 'id="episodeForm"' in HTML
     assert '<script src="/assets/cast.js"' in HTML
+
+def test_voice_design_is_wired_and_does_not_claim_arabic_qwen():
+    script=(ROOT/"studio/static/cast.js").read_text(encoding="utf-8")
+    assert '"/api/qwen/design"' in script
+    assert 'qwen-clone' in HTML and 'qwen-custom' in HTML
+    assert 'id="qwenVoiceDescription"' in HTML and 'id="qwenSeedText"' in HTML
+    assert "Official Qwen" in (ROOT/"studio/cast.py").read_text(encoding="utf-8")

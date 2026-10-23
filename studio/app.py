@@ -342,3 +342,6 @@ def unload_chatterbox():
 # Consent-aware cartoon cast, multi-speaker dialogue and episode exports.
 from studio.cast_api import router as cast_router
 app.include_router(cast_router)
+
+from studio.qwen_api import router as qwen_router
+app.include_router(qwen_router)

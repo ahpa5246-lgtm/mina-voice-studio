@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import FileResponse
-from studio import cast, engines
+from studio import cast, engines, qwen_runtime
 
 router = APIRouter(prefix="/api/cast", tags=["cartoon-studio"])
 
@@ -33,13 +33,20 @@ def create(
     name: str = Form(...), voice_id: str = Form(""),
     model: str = Form("multilingual-v3"), language: str = Form("ar"),
     exaggeration: float = Form(0.5), cfg_weight: float = Form(0.5),
+    speaker: str = Form("Ryan"), reference_text: str = Form(""),
     consent: bool = Form(False),
 ):
     if not consent:
         raise HTTPException(422, "Confirm authorization to reuse the voice for this character.")
+    if model == "qwen-clone" and voice_id and not reference_text.strip():
+        from studio.extras import _metadata
+        record = _metadata(_reference(voice_id).parent)
+        if record and record.get("origin") == "qwen-design":
+            reference_text = record.get("seed_text","")
     try:
         options = cast.validate_character(
-            name, voice_id, model, language, exaggeration, cfg_weight)
+            name, voice_id, model, language, exaggeration, cfg_weight,
+            speaker, reference_text)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     if voice_id:
@@ -68,13 +75,17 @@ def produce_episode(script_json: str = Form(...), consent: bool = Form(False)):
     if len(script_json) > 18000:
         raise HTTPException(413, "Episode script exceeds input-size limit.")
     host = _server()
-    if not any(e["id"] == "chatterbox" and e["configured"] for e in engines.status()):
-        raise HTTPException(503, "Install and configure Chatterbox before generating a cartoon episode.")
     try:
         raw = json.loads(script_json)
         script = cast.validate_script(host.DATA, raw)
     except (ValueError, TypeError, json.JSONDecodeError) as exc:
         raise HTTPException(422, str(exc)) from exc
+    needs_chat = any(not item["character"]["model"].startswith("qwen-") for item in script)
+    needs_qwen = any(item["character"]["model"].startswith("qwen-") for item in script)
+    if needs_chat and not any(e["id"]=="chatterbox" and e["configured"] for e in engines.status()):
+        raise HTTPException(503, "Install Chatterbox for the selected characters.")
+    if needs_qwen and not qwen_runtime.configured():
+        raise HTTPException(503, "Install qwen-tts and set QWEN_PYTHON for Qwen characters.")
     # Fail fast on dangling recorded-voice references.
     for line in script:
         voice_id = line["character"]["voice_id"]
@@ -130,3 +141,32 @@ def captions(job_id: str):
     return FileResponse(_artifact(job_id, "dialogue.srt"),
                         media_type="text/plain; charset=utf-8",
                         filename=f"mina-cartoon-{job_id[:8]}.srt")
+
+
+@router.post("/episodes/{job_id}/speaker-report",status_code=202)
+def evaluate_episode_voices(job_id: str):
+    """A real optional speaker-embedding model; no arbitrary success threshold."""
+    import importlib.util
+    if importlib.util.find_spec("resemblyzer") is None:
+        raise HTTPException(503, "Install resemblyzer into the Mina web-server Python environment.")
+    source=_artifact(job_id,"episode.zip")
+    host=_server()
+    report_job, directory=host._new_job("speaker-evaluation")
+    def work():
+        host._record(report_job,status="running")
+        try:
+            from scripts.voice_consistency import evaluate_archive
+            report=evaluate_archive(source)
+            (directory/"report.json").write_text(
+                json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
+        except Exception as exc:
+            host._record(report_job,status="failed",error=str(exc)[:800])
+        else:
+            host._record(report_job,status="completed",report=report)
+    try:
+        host.pool.submit(work)
+    except RuntimeError as exc:
+        host._discard_job(report_job)
+        raise HTTPException(503,"Evaluation queue unavailable") from exc
+    return {"id":report_job,"status":"queued",
+            "note":"Cosine similarity is a proxy; no verified identity threshold."}

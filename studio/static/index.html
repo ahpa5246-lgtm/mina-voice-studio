@@ -27,6 +27,20 @@
 <div class="heading"><div><h2 data-ar="استوديو الشخصيات والحوار" data-en="Character voice casting studio">استوديو الشخصيات والحوار</h2>
 <p data-ar="احفظي شخصية لكل صوت مرجعي مرخّص، اكتبي حوار الحلقة، ثم أنتجي التسجيل الكامل والمقاطع المنفصلة وملف SRT. لكل صوت مميز عينة مختلفة؛ تغيير الإعدادات لا يصنع هوية جديدة مضمونة." data-en="Assign each character an authorized voice reference, write an episode script, then export the full track, individual line WAVs and SRT captions. Distinct identities require distinct references.">احفظي شخصية لكل صوت مرجعي مرخّص، اكتبي حوار الحلقة، ثم أنتجي التسجيل الكامل والمقاطع المنفصلة وملف SRT. لكل صوت مميز عينة مختلفة؛ تغيير الإعدادات لا يصنع هوية جديدة مضمونة.</p>
 </div><span class="pill">CARTOON CAST · 48 LINES</span></div>
+<div class="card extra-card">
+<h3 data-ar="تصميم صوت جديد من وصف كتابي — Qwen3 VoiceDesign" data-en="Create a new voice from text — Qwen3 VoiceDesign">تصميم صوت جديد من وصف كتابي — Qwen3 VoiceDesign</h3>
+<p class="hint" data-ar="اكتبي وصفًا للصوت بالإنجليزية ونصًا مرجعيًا قصيرًا. ينشئ النموذج تسجيلًا صناعيًا محفوظًا في مكتبة الأصوات، ويمكن استعماله لاحقًا مع Qwen Clone للمحافظة على الهوية. العربية غير مدعومة في Qwen3 الرسمي." data-en="Describe the character voice in English and supply a short matching seed script. The generated reference is saved in your library and can be reused with Qwen Clone. Official Qwen3-TTS does not support Arabic.">اكتبي وصفًا للصوت بالإنجليزية ونصًا مرجعيًا قصيرًا. ينشئ النموذج تسجيلًا صناعيًا محفوظًا في مكتبة الأصوات، ويمكن استعماله لاحقًا مع Qwen Clone للمحافظة على الهوية. العربية غير مدعومة في Qwen3 الرسمي.</p>
+<form id="qwenDesignForm" class="form">
+<div class="inputs"><div><label for="qwenVoiceName" data-ar="اسم الصوت المصمَّم" data-en="Designed voice name">اسم الصوت المصمَّم</label><input id="qwenVoiceName" name="name" type="text" maxlength="72" value="Cartoon Narrator" required></div>
+<div><label for="qwenDesignLang" data-ar="لغة النص المرجعي" data-en="Reference script language">لغة النص المرجعي</label><select id="qwenDesignLang" name="language"><option>English</option><option>Chinese</option><option>Japanese</option><option>Korean</option><option>German</option><option>French</option><option>Russian</option><option>Portuguese</option><option>Spanish</option><option>Italian</option></select></div></div>
+<label for="qwenVoiceDescription" class="space" data-ar="وصف هوية الصوت (بالإنجليزية)" data-en="Voice identity description (English)">وصف هوية الصوت (بالإنجليزية)</label>
+<textarea id="qwenVoiceDescription" name="description" required rows="3" maxlength="800" dir="ltr" placeholder="A bright, expressive young adult female voice with a dry sarcastic edge and clear American English pronunciation."></textarea>
+<label for="qwenSeedText" class="space" data-ar="الجملة المرجعية، يجب حفظ نصها كما يُنطق بالضبط" data-en="Reference sentence — retain its exact transcript">الجملة المرجعية، يجب حفظ نصها كما يُنطق بالضبط</label>
+<textarea id="qwenSeedText" name="seed_text" required rows="2" maxlength="400" dir="auto">Okay, so this is officially the weirdest day of my life!</textarea>
+<label class="consent"><input type="checkbox" name="consent" value="true" required><span data-ar="أوافق على توليد هذا الصوت وحفظه للاستخدام في حلقاتي." data-en="I authorize generating and storing this synthetic voice for my production.">أوافق على توليد هذا الصوت وحفظه للاستخدام في حلقاتي.</span></label>
+<button class="primary" type="submit"><span data-ar="ابتكار الصوت وحفظ مرجعه" data-en="Design voice & save reference">ابتكار الصوت وحفظ مرجعه</span><span>→</span></button>
+</form><p id="qwenDesignStatus" class="status" role="status"></p><audio id="qwenDesignPreview" controls hidden></audio>
+</div>
 <div class="cols">
 <form id="castForm" class="card form">
 <h3 data-ar="إنشاء شخصية بصوت ثابت" data-en="Create a recurring character">إنشاء شخصية بصوت ثابت</h3>
@@ -37,10 +51,13 @@
 <p class="hint" data-ar="أضيفي الأصوات إلى مكتبة الأصوات أولًا. المرجع المختلف أساس تمييز الشخصيات؛ الاسم وحده لا يغيّر الصوت." data-en="Save voice clips to the voice library first. A new label by itself does not produce a new timbre.">أضيفي الأصوات إلى مكتبة الأصوات أولًا. المرجع المختلف أساس تمييز الشخصيات؛ الاسم وحده لا يغيّر الصوت.</p>
 <div class="inputs space">
 <div><label for="castModel" data-ar="المحرك" data-en="Model">المحرك</label>
-<select id="castModel" name="model"><option value="multilingual-v3">Multilingual V3 (23 languages)</option><option value="turbo">Turbo (English)</option><option value="nano">Nano (English)</option></select></div>
+<select id="castModel" name="model"><option value="multilingual-v3">Multilingual V3 (23 languages)</option><option value="turbo">Turbo (English)</option><option value="nano">Nano (English)</option><option value="qwen-clone">Qwen Clone · Designed/recorded voice</option><option value="qwen-custom">Qwen CustomVoice · Acting controls</option></select></div>
 <div><label for="castLang" data-ar="اللغة" data-en="Language">اللغة</label>
 <select id="castLang" name="language"><option value="ar">العربية</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option><option value="ja">日本語</option><option value="de">Deutsch</option></select></div>
 </div>
+<div class="inputs space">
+<div><label for="castSpeaker" data-ar="الصوت الجاهز — Qwen CustomVoice" data-en="Preset voice (Qwen CustomVoice)">الصوت الجاهز — Qwen CustomVoice</label><select id="castSpeaker" name="speaker"><option>Ryan</option><option>Aiden</option><option>Vivian</option><option>Serena</option><option>Uncle_Fu</option><option>Dylan</option><option>Eric</option><option>Ono_Anna</option><option>Sohee</option></select></div>
+<div><label for="castReferenceText" data-ar="النص الدقيق للتسجيل المرجعي (Qwen Clone)" data-en="Exact reference transcript (Qwen Clone)">النص الدقيق للتسجيل المرجعي (Qwen Clone)</label><textarea id="castReferenceText" name="reference_text" maxlength="500" rows="2" dir="auto" placeholder="Automatic for Qwen-designed voices"></textarea></div></div>
 <div class="inputs space">
 <div><label for="castExag" data-ar="التعبير الصوتي (0.25–1)" data-en="Expressiveness (0.25–1)">التعبير الصوتي (0.25–1)</label><input id="castExag" name="exaggeration" type="number" step=".05" min=".25" max="1" value=".5"></div>
 <div><label for="castCfg" data-ar="توجيه الهوية والأداء (0–1)" data-en="Voice guidance (0–1)">توجيه الهوية والأداء (0–1)</label><input id="castCfg" name="cfg_weight" type="number" min="0" max="1" step=".05" value=".5"></div>
@@ -56,7 +73,7 @@
 </div></div>
 <div class="card extra-card">
 <div class="cast-actions"><div><h3 data-ar="سيناريو الحلقة" data-en="Episode dialogue">سيناريو الحلقة</h3>
-<p class="hint" data-ar="حتى 48 جملة و6,000 حرف إجمالًا. التوجيهات تقريبية عبر إعدادات Chatterbox، وليست وسوم انفعالات مضمونة." data-en="Up to 48 dialogue lines and 6,000 total characters. Performance cues approximate model controls; they are not guaranteed emotional styles.">حتى 48 جملة و6,000 حرف إجمالًا. التوجيهات تقريبية عبر إعدادات Chatterbox، وليست وسوم انفعالات مضمونة.</p></div>
+<p class="hint" data-ar="حتى 48 جملة و6,000 حرف. تعليمات المشاعر تعمل مع Qwen CustomVoice الجاهز؛ Qwen Clone يحافظ على الصوت المرجعي لكن لا يدعم التعليمات الانفعالية لكل جملة." data-en="Up to 48 dialogue lines and 6,000 total characters. Performance cues approximate model controls; they are not guaranteed emotional styles.">حتى 48 جملة و6,000 حرف إجمالًا. التوجيهات تقريبية عبر إعدادات Chatterbox، وليست وسوم انفعالات مضمونة.</p></div>
 <button id="addCastLine" type="button" class="outline" data-ar="+ إضافة جملة" data-en="+ Add dialogue line">+ إضافة جملة</button></div>
 <form id="episodeForm" class="form">
 <div id="episodeLines" class="episode-lines" aria-live="polite"></div>
@@ -64,6 +81,8 @@
 <button type="submit" class="primary"><span data-ar="توليد الحلقة صوتيًا" data-en="Render cartoon episode">توليد الحلقة صوتيًا</span><span>→</span></button>
 </form><p class="status" id="episodeStatus" role="status"></p>
 <div id="episodeProgress" class="hint" role="status"></div>
+<button id="checkSpeaker" type="button" class="outline" hidden data-ar="قياس ثبات أصوات الشخصيات (Resemblyzer)" data-en="Measure character voice consistency (Resemblyzer)">قياس ثبات أصوات الشخصيات (Resemblyzer)</button>
+<pre id="speakerReport" class="report" hidden aria-live="polite"></pre>
 <audio id="episodePreview" controls hidden></audio>
 <div class="cast-downloads">
 <a id="episodeZip" class="download" download hidden data-ar="تنزيل الحلقة وجميع الجمل ZIP" data-en="Download episode and every WAV line (ZIP)">تنزيل الحلقة وجميع الجمل ZIP</a>

@@ -100,3 +100,36 @@ Distinct names do **not** create distinct vocal timbres. Different authorized re
 **Current local capacity:** 128 saved voice recordings, 128 character profiles, up to 48 dialogue lines and 6,000 total characters per episode job. These are explicit software limits, not an unlimited voice-generation claim. Voice reference audio and character profiles persist until deleted; generated episode jobs are temporary and cleared through normal local retention.
 
 To test Chatterbox with actual authorized voice files, install the separate Chatterbox environment as in the [Arabic setup guide](docs/INSTALL_AR.md) and run `scripts/smoke_audio.py`. No GPU acoustic-quality claim is made by the HTTP/browser test suite.
+
+## Qwen3 Voice Design, reusable cartoon identities and acting controls
+
+Mina now integrates the real **Apache-2.0 [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)** via a separate Python process. Its **VoiceDesign 1.7B** can synthesize an entirely new voice seed from a written English description (no speaker recording). The seed audio and exact spoken transcript are stored in Mina's reference library. Assign the seed to a recurring **Qwen Clone** character in Cartoon Cast: **Base 1.7B** reuses the same reference audio/transcript and a cached clone prompt across dialogue lines. This is the technically correct route to keeping an invented character timbre consistent.
+
+Per-line acting direction ("sarcastic", "angry", "sad", "crying", etc.) is wired through **Qwen CustomVoice 1.7B**, using its nine preset speakers and official `instruct` argument. **The Base clone checkpoint does not support per-line acting instructions**. Its generated speech remains governed by the seed and text. Character differentiation/expressiveness are not guaranteed.
+
+Official Qwen3 12Hz voice models support ten languages: English, Chinese, Japanese, Korean, German, French, Russian, Portuguese, Spanish and Italian. **No Arabic**; use Chatterbox Multilingual V3 for Arabic cartoons. No 0.6B VoiceDesign is claimed.
+
+### Installation (local Windows or Kaggle GPU)
+
+Qwen is optional, and must **not** be installed into the existing Chatterbox/Applio environment:
+
+```powershell
+py -3.12 -m venv .venv-qwen
+.\.venv-qwen\Scripts\python.exe -m pip install qwen-tts soundfile
+$env:QWEN_PYTHON = (Resolve-Path '.venv-qwen\Scripts\python.exe').Path
+python -m uvicorn studio.app:app --host 127.0.0.1 --port 7860
+```
+
+First inference downloads public model weights (multiple GB) unless already cached. Check model cards and available VRAM; the process caches one active Qwen checkpoint, releasing it when switching model families. This avoids loading design, clone and CustomVoice weights together, but still does **not** prove GPU compatibility on your PC.
+
+### Run the first GPU benchmark on Kaggle
+
+Import the versioned notebook [kaggle/cartoon_voices_qwen3.ipynb](kaggle/cartoon_voices_qwen3.ipynb) into Kaggle Notebooks, enable an available GPU, and enable internet if permitted for downloading public weights. Execute all cells. It builds two **entirely synthetic voices**, generates three repeated lines from each with Base clone, generates three acted lines with CustomVoice, and compares within-speaker versus between-speaker Resemblyzer embedding cosine similarity. It exports **actual** WAV files and metrics JSON. These operations were **not executed** in GitHub CI or this environment. The notebook is a reproducible experiment, not completed training or proof of commercial parity.
+
+For real episodes created inside Mina, optionally install `resemblyzer` and run `python scripts/voice_consistency.py path/to/episode.zip`. Embedding similarity is a proxy; use a blinded listening test across multiple voices/scenes and evaluate naturalness, drift, failures, GPU memory and real-time factor. Do not claim ElevenLabs parity based on similarity numbers alone.
+
+See the [Arabic Qwen + Kaggle guide](docs/QWEN_KAGGLE_AR.md).
+
+### Optional in-app episode voice-consistency report
+
+After an actual episode has finished rendering, the Cartoon Cast page displays **Measure character voice consistency**. Install `resemblyzer` in Mina's own **web-server** Python environment to enable it. The report compares GE2E speaker embeddings from real generated lines, counts within/between-character pairs and exposes mean cosine and minimum pair similarity, with **no pass/fail threshold**. Short recordings or incompatible audio correctly fail rather than producing fake values. Model weights will be downloaded on first use when the optional package supports it. No score is presented as proof of voice authenticity, especially for highly stylized characters or Arabic.

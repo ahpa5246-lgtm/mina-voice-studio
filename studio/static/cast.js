@@ -4,6 +4,7 @@
   const $ = q => document.querySelector(q);
   const say = (ar, en) => document.documentElement.lang === "en" ? en : ar;
   let profiles = [], availableVoices = [];
+  let lastCompletedEpisode = null;
   const lineHost = $("#episodeLines");
   const err = error => error instanceof Error ? error.message : String(error);
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -26,13 +27,23 @@
     if (entries.some(entry => entry.value === oldValue)) select.value = oldValue;
   }
   function syncModel() {
-    const englishOnly = $("#castModel").value !== "multilingual-v3";
+    const model = $("#castModel").value;
+    const englishOnly = model === "turbo" || model === "nano";
+    const qwen = model.startsWith("qwen-");
+    const allowedQwen = new Set(["en","zh","ja","ko","de","fr","ru","pt","es","it"]);
     const lang = $("#castLang");
-    if (englishOnly) lang.value = "en";
-    for (const item of lang.options) item.disabled = englishOnly && item.value !== "en";
-    $("#castVoice").required = englishOnly;
+    if (englishOnly || (qwen && !allowedQwen.has(lang.value))) lang.value = "en";
+    for (const item of lang.options) item.disabled =
+      englishOnly ? item.value !== "en" : qwen && !allowedQwen.has(item.value);
+    $("#castVoice").required = englishOnly || model === "qwen-clone";
+    $("#castSpeaker").disabled = model !== "qwen-custom";
+    $("#castReferenceText").disabled = model !== "qwen-clone";
   }
   $("#castModel").addEventListener("change", syncModel);
+  $("#castVoice").addEventListener("change", () => {
+    const selected = availableVoices.find(v => v.id === $("#castVoice").value);
+    if(selected?.origin === "qwen-design") $("#castReferenceText").value = selected.seed_text || "";
+  });
   const mainLanguages = Array.from($("#language").options, el => ({value: el.value, label: el.textContent}));
   const castLang = $("#castLang");
   const current = castLang.value;
@@ -110,7 +121,8 @@
     for (const [key,ar,en] of [
       ["neutral","طبيعي","Neutral"],["energetic","حيوي","Energetic"],
       ["sarcastic","ساخر تقريبًا","Sarcastic approximation"],
-      ["quiet","هادئ","Quiet"],["dramatic","درامي","Dramatic approximation"]
+      ["quiet","هادئ","Quiet"],["dramatic","درامي","Dramatic approximation"],
+      ["angry","غاضب","Angry"],["sad","حزين","Sad"],["crying","يبكي","Crying"]
     ]) delivery.append(option(key,say(ar,en)));
     const pause = document.createElement("input");pause.className="cast-pause";
     pause.type="number";pause.min="0";pause.max="2000";pause.step="50";pause.value="250";
@@ -124,6 +136,38 @@
       label.textContent=say("جملة ","Line ")+(i+1);
     });
   }
+  $("#qwenDesignForm").addEventListener("submit",async event => {
+    event.preventDefault();
+    const form = event.currentTarget, button=form.querySelector('[type="submit"]');
+    button.disabled=true;
+    const status=$("#qwenDesignStatus");
+    const preview=$("#qwenDesignPreview");
+    preview.hidden=true;
+    status.textContent=say("إرسال طلب تصميم الصوت...", "Submitting voice design request...");
+    try{
+      const job=await request("/api/qwen/design",{method:"POST",body:new FormData(form)});
+      let finished=false;
+      for(let i=0;i<900;i++){
+        const result=await request("/api/jobs/"+encodeURIComponent(job.id));
+        if(result.status==="failed") throw Error(result.error||"Qwen design failed");
+        if(result.status==="completed"){
+          if(!result.voice?.id||!result.download)throw Error("No voice was saved.");
+          preview.src=result.download;preview.hidden=false;
+          status.textContent=say("صوت جديد محفوظ في المكتبة: ","New designed voice saved: ")+result.voice.name;
+          await refreshVoices();
+          $("#castModel").value="qwen-clone";syncModel();
+          $("#castVoice").value=result.voice.id;
+          $("#castVoice").dispatchEvent(new Event("change"));
+          $("#castName").value=result.voice.name;
+          finished=true;break;
+        }
+        status.textContent=say("يجري تصميم الهوية الصوتية...", "Generating voice identity...");
+        await sleep(1700);
+      }
+      if(!finished)throw Error("Design job polling timed out");
+    }catch(error){status.textContent=err(error);}
+    finally{button.disabled=false;}
+  });
   $("#addCastLine").addEventListener("click",addLine);
   $("#castForm").addEventListener("submit",async event => {
     event.preventDefault();
@@ -148,6 +192,8 @@
         $("#episodeZip").href=result.archive;$("#episodeZip").hidden=false;
         $("#episodeSrt").href=result.captions;$("#episodeSrt").hidden=false;
         const player=$("#episodePreview");player.src=result.download;player.hidden=false;
+        lastCompletedEpisode=id;
+        $("#checkSpeaker").hidden=false;
         const seconds=result.episode?.duration_seconds;
         status.textContent=say("اكتمل التوليد الحقيقي للحلقة.","The episode is rendered with the installed speech model.");
         progress.textContent=seconds?say("مدة الحلقة: ","Episode duration: ")+seconds+"s":"";
@@ -182,6 +228,8 @@
     button.disabled=true;
     $("#episodeZip").hidden=true;$("#episodeSrt").hidden=true;
     $("#episodePreview").hidden=true;
+    $("#checkSpeaker").hidden=true;$("#speakerReport").hidden=true;
+    lastCompletedEpisode=null;
     $("#episodeStatus").textContent=say("إرسال سيناريو الحلقة...","Submitting episode script...");
     try{
       const payload=new FormData();
@@ -190,6 +238,30 @@
       const job=await request("/api/cast/episodes",{method:"POST",body:payload});
       await watchJob(job.id);
     }catch(error){$("#episodeStatus").textContent=say("فشل: ","Failed: ")+err(error);}
+    finally{button.disabled=false;}
+  });
+  $("#checkSpeaker").addEventListener("click",async()=>{
+    if(!lastCompletedEpisode)return;
+    const button=$("#checkSpeaker"),box=$("#speakerReport");
+    button.disabled=true;box.hidden=false;
+    box.textContent=say("يتم تحميل نموذج بصمة المتحدث...", "Evaluating real speaker embeddings...");
+    try{
+      const submitted=await request(
+        "/api/cast/episodes/"+encodeURIComponent(lastCompletedEpisode)+"/speaker-report",
+        {method:"POST"});
+      let complete=false;
+      for(let i=0;i<500;i++){
+        const progress=await request("/api/jobs/"+encodeURIComponent(submitted.id));
+        if(progress.status==="failed")throw Error(progress.error||"Speaker evaluation failed");
+        if(progress.status==="completed"){
+          if(!progress.report)throw Error("No speaker similarity report returned");
+          box.textContent=JSON.stringify(progress.report,null,2);
+          complete=true;break;
+        }
+        await sleep(1600);
+      }
+      if(!complete)throw Error("Speaker evaluation polling limit reached");
+    }catch(error){box.textContent=say("تعذر التقييم: ","Evaluation failed: ")+err(error);}
     finally{button.disabled=false;}
   });
   document.querySelector('.nav[data-tab="cast"]').addEventListener("click",async()=>{
