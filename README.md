@@ -13,6 +13,7 @@ An Arabic-first, local-first open-source voice workstation. This is a developmen
 | Voice library | Save, list, preview, delete consented voice references | Stored locally in data/_voices |
 | Audio enhancement | High-pass, peak normalization and optional gate on real PCM-16 samples | Conventional DSP, not neural denoising |
 | Audio analysis | Clipping, silence, RMS, peak and duration | PCM-16 WAV only |
+| Music/vocals separation | Run original Meta Demucs htdemucs two-stem CLI and export two verified WAV files in ZIP | Independent Demucs venv; weights/FFmpeg required |
 | Speech transcription | Faster-Whisper worker for Arabic or English | Whisper installed separately and its weights downloaded |
 | Script dubbing | Produce narration from your manually translated script | Chatterbox installed; no auto translation or lip-sync |
 | TTS-WebUI API | Local OpenAI-compatible speech API connector | Needs separate API extension, model and voice selection |
@@ -76,3 +77,15 @@ python scripts/smoke_audio.py --operation speech --chatterbox-model turbo --lang
 ```
 
 CI covers the private stdio protocol, security gates, actual WAV signal processing, subtitle timestamps and browser wiring. **CI does not download model weights or establish acoustic fidelity.** Compare naturalness and accent only after listening to real generated recordings. See [upstream integration notes](docs/UPSTREAM_INTEGRATION.md).
+
+## Demucs source separation
+
+The **Vocal separation** workspace invokes the original [MIT-licensed Meta Demucs](https://github.com/facebookresearch/demucs) command in a dedicated Python environment. The optional upstream repository is archived, so future compatibility is not guaranteed. Install it yourself before using this feature. The app validates both `vocals.wav` and `instrumental.wav` rather than inventing separated audio, and fails transparently without model weights or an installed runtime. No pretrained model files are included.
+
+```powershell
+py -3.11 -m venv .venv-demucs
+.\.venv-demucs\Scripts\python.exe -m pip install demucs
+$env:DEMUCS_PYTHON = (Resolve-Path '.venv-demucs\Scripts\python.exe').Path
+```
+
+You will also need the multimedia decoder dependencies supported by Demucs, normally FFmpeg. Model weights can download on first use. This is an isolated heavy audio job, not a streaming/live separation feature.

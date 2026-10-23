@@ -90,8 +90,8 @@ def page(browser, site):
 def test_ui_loads_all_nine_real_workspaces(page):
     current, errors = page
     assert current.title() == "Mina Voice Studio"
-    assert current.locator(".nav").count() == 10
-    assert current.locator(".tab").count() == 10
+    assert current.locator(".nav").count() == 11
+    assert current.locator(".tab").count() == 11
     assert current.locator("#speech").is_visible()
     assert not errors, errors
 
@@ -245,3 +245,17 @@ def test_upstream_worker_status_visible_on_engine_page(page):
     current.wait_for_function('() => document.querySelector("#runtimeStatus").textContent !== "—"')
     assert current.locator("#unloadModel").is_visible()
     assert not errors, errors
+
+def test_demucs_page_reports_missing_model_instead_of_fake_stems(page):
+    current,errors=page
+    current.locator('.nav[data-tab="stems"]').click()
+    current.locator("#stemsAudio").set_input_files({
+      "name":"track.wav","mimeType":"audio/wav","buffer":wav_bytes()})
+    current.locator('#stemsForm input[name="consent"]').check()
+    current.locator('#stemsForm button[type="submit"]').click()
+    current.wait_for_function("""() => {
+       const text=document.querySelector('#stemsStatus').textContent;
+       return text.includes('Demucs') || text.includes('503');
+    }""",timeout=15000)
+    assert current.locator("#stemsDownload").is_hidden()
+    assert not errors,errors

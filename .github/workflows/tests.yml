@@ -19,6 +19,7 @@ jobs:
       - run: node --check studio/static/extras.js
       - run: node --check studio/static/applio.js
       - run: node --check studio/static/upstream.js
+      - run: node --check studio/static/stems.js
       - run: python -m pytest -q
   browser:
     runs-on: ubuntu-latest

@@ -35,7 +35,7 @@ def test_interface_has_real_workflows_and_no_duplicate_ids():
     parser = AuditParser()
     parser.feed(HTML)
     assert parser.dir == "rtl"
-    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm", "trainingForm", "rvcBatchForm", "rvcBlendForm"}
+    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm", "trainingForm", "rvcBatchForm", "rvcBlendForm", "stemsForm"}
     assert len(parser.ids) == len(set(parser.ids))
 
 
@@ -89,3 +89,8 @@ def test_upstream_script_has_live_forms_and_private_model_controls():
                  "subtitleSrt", "subtitleVtt"):
         assert 'id="' + item + '"' in HTML
     assert '<script src="/assets/upstream.js"' in HTML
+
+def test_demucs_form_has_active_javascript_submit_handler():
+    script=(ROOT / "studio/static/stems.js").read_text(encoding="utf-8")
+    assert 'form.addEventListener("submit"' in script
+    assert '<script src="/assets/stems.js"' in HTML

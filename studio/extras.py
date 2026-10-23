@@ -15,7 +15,7 @@ from uuid import uuid4
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
 
-from studio import audio_tools, engines, providers, training
+from studio import audio_tools, engines, providers, training, separation
 from studio.text import normalize_text, MAX_DOCUMENT_CHARS
 
 router = APIRouter(prefix="/api")
@@ -76,6 +76,9 @@ def _stt_python() -> str | None:
 @router.get("/tools")
 def tool_status():
     return {"tools": [
+        {"id": "separate", "label": "Demucs vocals / instrumental stems",
+         "ready": separation.installed(),
+         "detail": "Meta Demucs two-stem CLI; weights downloaded on first use"},
         {"id": "enhance", "label": "WAV cleanup / peak normalization",
          "ready": True, "detail": "Pure Python PCM-16, no neural denoising"},
         {"id": "quality", "label": "Technical WAV diagnostics",
@@ -362,3 +365,48 @@ def download_subtitles(job_id: str, format: str):
         headers={"Content-Disposition":f'attachment; filename="mina-transcript-{job_id[:8]}.{format}"',
                  "Cache-Control":"no-store"},
     )
+
+@router.post("/separate", status_code=202)
+async def separate_stems(audio: UploadFile = File(...), consent: bool = Form(False)):
+    """Launch real upstream Demucs without synthesizing fake separation output."""
+    if not consent:
+        raise HTTPException(422,"Confirm permission to process this recording.")
+    if not separation.installed():
+        raise HTTPException(503,"Demucs not installed. Install into DEMUCS_PYTHON environment.")
+    host=_app()
+    job_id, directory=host._new_job("demucs-separation")
+    try:
+        source=await host._save_audio(audio,directory/"source")
+    except Exception:
+        host._discard_job(job_id)
+        raise
+    def work():
+        host._record(job_id,status="running")
+        try:
+            destination=directory/"stems.zip"
+            separation.separate(audio=source,output=destination)
+        except Exception as exc:
+            host._record(job_id,status="failed",error=str(exc)[:800])
+        else:
+            host._record(job_id,status="completed",
+                         download=f"/api/separation/{job_id}/archive")
+    try:
+        host.pool.submit(work)
+    except RuntimeError as exc:
+        host._discard_job(job_id)
+        raise HTTPException(503,"Processing queue unavailable.") from exc
+    return {"id":job_id,"status":"queued"}
+
+
+@router.get("/separation/{job_id}/archive")
+def download_stems(job_id: str):
+    host=_app()
+    with host.job_lock:
+        job=host.jobs.get(job_id)
+        if not job or job.get("engine")!="demucs-separation" or job.get("status")!="completed":
+            raise HTTPException(404,"Separated stems not available")
+    destination=host.DATA/job_id/"stems.zip"
+    if not destination.is_file():
+        raise HTTPException(404,"Stem archive missing")
+    return FileResponse(destination,media_type="application/zip",
+                        filename="mina-demucs-stems.zip")
