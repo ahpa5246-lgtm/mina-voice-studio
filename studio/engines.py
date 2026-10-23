@@ -86,7 +86,7 @@ def status() -> list[dict[str, Any]]:
             "operation": "speech",
             "configured": chatterbox_configured,
             "label": "Configured (audio test required)" if chatterbox_configured else "Installation required",
-            "languages": ["ar", "en", "fr", "es", "de", "it", "pt", "hi", "ja", "zh"],
+            "languages": list("ar da de el en es fi fr he hi it ja ko ms nl no pl pt ru sv sw tr zh".split()),
         },
         {
             "id": "applio",
@@ -134,7 +134,7 @@ def _execute(command: list[str], *, cwd: Path | None = None) -> None:
 
 def synthesize(*, text_file: Path, reference: Path | None, language: str, output: Path,
                exaggeration: float = 0.5, cfg_weight: float = 0.5) -> None:
-    if language not in {"ar", "en", "fr", "es", "de", "it", "pt", "hi", "ja", "zh"}:
+    if language not in set("ar da de el en es fi fr he hi it ja ko ms nl no pl pt ru sv sw tr zh".split()):
         raise EngineError("Unsupported language selection.")
     command = [
         _python("CHATTERBOX_PYTHON"),
