@@ -61,3 +61,18 @@ These are application and signal-processing tests, **not 1,000 model-inference r
 ### Upstream Applio compatibility
 
 This integration **calls the original Applio code** from a separate installation via `scripts/applio_native_worker.py` and does not redistribute upstream GPU weights. It uses Applio's native `core.run_infer_script`, `core.run_batch_infer_script`, and `core.run_model_blender_script`. On-demand Light cleanup can require FFmpeg; Speech cleanup may download DeepFilterNet components on the user machine. DeepFilterNet is not the same as music/vocal source separation. Live voice streaming and vocal/instrument splitting are **not integrated** into Mina yet. Until tested against real RVC weights, call status configured, not audio-verified.
+
+## Upstream-derived engine integration (Oct 2026)
+
+Mina invokes independently installed **MIT-licensed** upstream model runtimes rather than copying their entire incompatible Python environments. The Chatterbox adapter now accepts Multilingual V3 (23 languages), Turbo (English) and Nano (English) through the original Resemble AI API; Turbo/Nano require an authorized reference clip. A local-only **stdio process** caches exactly one Chatterbox model at a time and is explicitly releasable from the Engines screen. No TCP inference daemon or third-party model weights are distributed.
+
+Faster-Whisper transcription results can be exported as SRT or WebVTT using the actual recognized segment timestamps. This is subtitle *export*, **not** automatic dubbing/lip synchronization. GPT-SoVITS and TTS-WebUI local API adapters are available in the additional providers screen, but do not count as verified until real audio has been produced.
+
+To run the real hardware tests on a configured machine:
+
+```powershell
+python scripts/smoke_audio.py --operation speech --chatterbox-model multilingual-v3 --language ar --text "مرحبا بك" --output data/ar.wav
+python scripts/smoke_audio.py --operation speech --chatterbox-model turbo --language en --reference C:\path\to\authorized-voice.wav --text "Welcome!" --output data/turbo.wav
+```
+
+CI covers the private stdio protocol, security gates, actual WAV signal processing, subtitle timestamps and browser wiring. **CI does not download model weights or establish acoustic fidelity.** Compare naturalness and accent only after listening to real generated recordings. See [upstream integration notes](docs/UPSTREAM_INTEGRATION.md).

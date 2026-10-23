@@ -221,6 +221,7 @@ def models():
 async def make_speech(
     text: str = Form(...),
     language: str = Form("ar"),
+    model: str = Form("multilingual-v3"),
     consent: bool = Form(False),
     reference: UploadFile | None = File(None),
     exaggeration: float = Form(0.5),
@@ -235,6 +236,10 @@ async def make_speech(
         raise HTTPException(422, "Unsupported language.")
     if not 0.25 <= exaggeration <= 1.0 or not 0 <= cfg_weight <= 1.0:
         raise HTTPException(422, "Invalid voice settings.")
+    if model not in {"multilingual-v3", "turbo", "nano"}:
+        raise HTTPException(422, "Unknown Chatterbox model.")
+    if model != "multilingual-v3" and (language != "en" or reference is None):
+        raise HTTPException(422, "Turbo and Nano require English and an authorized voice reference.")
     if not _configured("chatterbox"):
         raise HTTPException(503, "Chatterbox has not been installed/configured.")
     job_id, directory = _new_job("chatterbox")
@@ -247,7 +252,8 @@ async def make_speech(
         raise
     _schedule(engines.synthesize, job_id,
               text_file=text_file, reference=reference_path, language=language,
-              output=directory / "output.wav", exaggeration=exaggeration, cfg_weight=cfg_weight)
+              output=directory / "output.wav", exaggeration=exaggeration, cfg_weight=cfg_weight,
+              model=model)
     return {"id": job_id, "status": "queued"}
 
 
@@ -316,3 +322,18 @@ app.include_router(extra_router)
 
 from studio.applio_api import router as applio_router
 app.include_router(applio_router)
+
+@app.get("/api/runtime/chatterbox")
+def chatterbox_process_status():
+    from studio.chatterbox_runtime import status
+    return status()
+
+
+@app.post("/api/runtime/chatterbox/unload")
+def unload_chatterbox():
+    from studio.chatterbox_runtime import release
+    with job_lock:
+        if any(j["engine"] in {"chatterbox","manual-dub"} and j["status"] in RUNNING for j in jobs.values()):
+            raise HTTPException(409,"A Chatterbox job is active; cannot unload its weights.")
+        release()
+    return {"unloaded": True}

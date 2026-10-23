@@ -19,6 +19,7 @@ from scripts.quality_report import analyze_wav
 
 def benchmark(operation: str, *, output: Path, text: str | None = None,
               reference: Path | None = None, language: str = "ar",
+              chatterbox_model: str = "multilingual-v3",
               audio: Path | None = None, model_id: str | None = None) -> dict:
     output = output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -28,7 +29,7 @@ def benchmark(operation: str, *, output: Path, text: str | None = None,
             raise ValueError("Speech smoke test requires --text.")
         text_path = output.with_name(output.stem + ".text.txt")
         text_path.write_text(text, encoding="utf-8")
-        engines.synthesize(text_file=text_path, reference=reference.resolve() if reference else None, language=language, output=output)
+        engines.synthesize(text_file=text_path, reference=reference.resolve() if reference else None, language=language, output=output, model=chatterbox_model)
     elif operation == "conversion":
         if audio is None or model_id is None:
             raise ValueError("Conversion smoke test needs --audio and --model-id.")
@@ -52,6 +53,7 @@ def main():
     parser.add_argument("--text", help="Text to synthesize (requires Chatterbox configured)")
     parser.add_argument("--reference", type=Path, help="Authorized reference voice")
     parser.add_argument("--language", default="ar")
+    parser.add_argument("--chatterbox-model",choices=["multilingual-v3","turbo","nano"],default="multilingual-v3")
     parser.add_argument("--audio", type=Path, help="Input recording for Applio conversion")
     parser.add_argument("--model-id", help="An ID returned from /api/models")
     parser.add_argument("--output", type=Path, default=Path("data/manual-benchmark.wav"))
@@ -60,6 +62,7 @@ def main():
     report = benchmark(
         args.operation, output=args.output, text=args.text,
         reference=args.reference, language=args.language,
+        chatterbox_model=args.chatterbox_model,
         audio=args.audio, model_id=args.model_id,
     )
     body = json.dumps(report, indent=2, ensure_ascii=False)

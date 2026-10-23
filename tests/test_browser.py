@@ -217,3 +217,31 @@ def test_applio_advanced_forms_are_connected_and_missing_install_is_reported(pag
     }""",timeout=15000)
     assert current.locator("#rvcBatchDownload").is_hidden()
     assert not errors, errors
+
+def test_upstream_model_choices_have_real_input_constraints(page):
+    current, errors = page
+    model = current.locator("#speechModel")
+    assert model.locator("option").count() == 3
+    model.select_option("nano")
+    assert current.locator("#language").input_value() == "en"
+    assert current.locator("#reference").get_attribute("required") is not None
+    assert current.locator('#language option[value="ar"]').is_disabled()
+    model.select_option("multilingual-v3")
+    assert current.locator("#reference").get_attribute("required") is None
+    assert not errors, errors
+
+
+def test_subtitle_links_exist_but_remain_hidden_without_real_transcription(page):
+    current, errors = page
+    current.locator('.nav[data-tab="transcription"]').click()
+    assert current.locator("#subtitleSrt").is_hidden()
+    assert current.locator("#subtitleVtt").is_hidden()
+    assert not errors, errors
+
+
+def test_upstream_worker_status_visible_on_engine_page(page):
+    current, errors = page
+    current.locator('.nav[data-tab="engines"]').click()
+    current.wait_for_function('() => document.querySelector("#runtimeStatus").textContent !== "—"')
+    assert current.locator("#unloadModel").is_visible()
+    assert not errors, errors

@@ -80,3 +80,12 @@ def test_applio_workspace_uses_real_post_handlers():
     for form in ("rvcBatchForm","rvcBlendForm"):
         assert f'$("#{form}").addEventListener("submit"' in script
     assert '<script src="/assets/applio.js"' in HTML
+
+def test_upstream_script_has_live_forms_and_private_model_controls():
+    script=(ROOT / "studio/static/upstream.js").read_text(encoding="utf-8")
+    assert 'model.addEventListener("change"' in script
+    assert '"POST"' in script
+    for item in ("speechModel", "unloadModel", "runtimeStatus",
+                 "subtitleSrt", "subtitleVtt"):
+        assert 'id="' + item + '"' in HTML
+    assert '<script src="/assets/upstream.js"' in HTML

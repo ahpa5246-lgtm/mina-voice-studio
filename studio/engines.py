@@ -5,6 +5,7 @@ No engine is silently simulated. Each adapter must create a real WAV file.
 from __future__ import annotations
 
 import importlib.util
+from functools import lru_cache
 import os
 from pathlib import Path
 import subprocess
@@ -28,6 +29,19 @@ def _python_available(python: str) -> bool:
         return True
     candidate = Path(python).expanduser()
     return candidate.is_file() if candidate.is_absolute() or "/" in python or "\\" in python else __import__("shutil").which(python) is not None
+
+
+@lru_cache(maxsize=16)
+def _module_installed(python: str, module: str) -> bool:
+    """Check an isolated Python environment, not the server interpreter."""
+    import subprocess
+    try:
+        found=subprocess.run(
+            [python,"-c",f"import importlib.util; print(int(importlib.util.find_spec({module!r}) is not None))"],
+            capture_output=True,text=True,timeout=8,check=False)
+    except (OSError,subprocess.TimeoutExpired):
+        return False
+    return found.returncode == 0 and found.stdout.strip() == "1"
 
 
 def applio_root() -> Path | None:
@@ -76,6 +90,7 @@ def status() -> list[dict[str, Any]]:
     chatterbox_configured = (
         _python_available(chatterbox_python)
         and (bool(os.getenv("CHATTERBOX_PYTHON")) or importlib.util.find_spec("chatterbox") is not None)
+        and _module_installed(chatterbox_python,"chatterbox")
     )
     root = applio_root()
     models = model_catalog()
@@ -98,17 +113,17 @@ def status() -> list[dict[str, Any]]:
         },
         {
             "id": "tts-webui",
-            "title": "TTS-WebUI",
-            "operation": "planned",
-            "configured": False,
-            "label": "Adapter not yet implemented",
+            "title": "TTS-WebUI (local OpenAI-compatible endpoint)",
+            "operation": "provider",
+            "configured": __import__("studio.providers",fromlist=["local_base_url"]).local_base_url("TTS_WEBUI_URL") is not None,
+            "label": "Local API URL configured; live audio test still needed",
         },
         {
             "id": "gpt-sovits",
-            "title": "GPT-SoVITS",
-            "operation": "planned",
-            "configured": False,
-            "label": "Adapter not yet implemented",
+            "title": "GPT-SoVITS (local API)",
+            "operation": "provider",
+            "configured": __import__("studio.providers",fromlist=["local_base_url"]).local_base_url("GPT_SOVITS_URL") is not None,
+            "label": "Local API URL configured; live audio test still needed",
         },
     ]
 
@@ -132,24 +147,25 @@ def _execute(command: list[str], *, cwd: Path | None = None) -> None:
         raise EngineError("Engine failed: " + detail)
 
 
-def synthesize(*, text_file: Path, reference: Path | None, language: str, output: Path,
-               exaggeration: float = 0.5, cfg_weight: float = 0.5) -> None:
+def synthesize(*, text_file: Path, reference: Path | None, language: str,
+               output: Path, exaggeration: float = 0.5, cfg_weight: float = 0.5,
+               model: str = "multilingual-v3") -> None:
+    """Use the actual upstream family in one cached, isolated stdio worker."""
+    if model not in {"multilingual-v3", "turbo", "nano"}:
+        raise EngineError("Unsupported Chatterbox model")
     if language not in set("ar da de el en es fi fr he hi it ja ko ms nl no pl pt ru sv sw tr zh".split()):
-        raise EngineError("Unsupported language selection.")
-    command = [
-        _python("CHATTERBOX_PYTHON"),
-        str(ROOT / "scripts" / "chatterbox_worker.py"),
-        "--text-file", str(text_file),
-        "--output", str(output),
-        "--language", language,
-        "--exaggeration", str(exaggeration),
-        "--cfg-weight", str(cfg_weight),
-    ]
-    if reference:
-        command += ["--reference", str(reference)]
-    _execute(command)
+        raise EngineError("Unsupported language selection")
+    if model != "multilingual-v3" and (language != "en" or not reference):
+        raise EngineError("Turbo/Nano require English text and an authorized voice reference")
+    from studio.chatterbox_runtime import request
+    request({
+        "operation": "synthesize",
+        "args": {"text_file": str(text_file), "reference": str(reference) if reference else None,
+                 "output": str(output), "language": language, "model_name": model,
+                 "exaggeration": exaggeration, "cfg_weight": cfg_weight},
+    }, python=_python("CHATTERBOX_PYTHON"))
     if not output.is_file() or output.stat().st_size < 44:
-        raise EngineError("Engine completed without producing a usable WAV file.")
+        raise EngineError("Chatterbox returned no usable WAV output")
 
 
 def convert(*, audio: Path, model_id: str, output: Path,
