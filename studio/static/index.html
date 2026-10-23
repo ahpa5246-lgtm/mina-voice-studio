@@ -10,7 +10,7 @@
 <button class="nav" data-tab="convert"><span>◎</span><label data-ar="تحويل الصوت" data-en="Voice conversion">تحويل الصوت</label></button>
 <button class="nav" data-tab="engines"><span>▦</span><label data-ar="المحركات والنماذج" data-en="Engines & models">المحركات والنماذج</label></button><button class="nav" data-tab="applio"><span>⚗</span><label data-ar="مختبر Applio" data-en="Applio Pro tools">مختبر Applio</label></button><button class="nav" data-tab="library"><span>♬</span><label data-ar="مكتبة الأصوات" data-en="Voice library">مكتبة الأصوات</label></button>
 <button class="nav" data-tab="cleanup"><span>✧</span><label data-ar="تحسين الصوت وتحليله" data-en="Audio enhancement">تحسين الصوت وتحليله</label></button>
-<button class="nav" data-tab="transcription"><span>≡</span><label data-ar="تفريغ الكلام" data-en="Transcription">تفريغ الكلام</label></button>
+<button class="nav" data-tab="stems"><span>♫</span><label data-ar="فصل الغناء والموسيقى" data-en="Vocal separation">فصل الغناء والموسيقى</label></button><button class="nav" data-tab="transcription"><span>≡</span><label data-ar="تفريغ الكلام" data-en="Transcription">تفريغ الكلام</label></button>
 <button class="nav" data-tab="dubbing"><span>◈</span><label data-ar="الدبلجة والنصوص" data-en="Voiceover">الدبلجة والنصوص</label></button>
 <button class="nav" data-tab="providers"><span>▤</span><label data-ar="المحركات الإضافية" data-en="External engines">المحركات الإضافية</label></button>
 <button class="nav" data-tab="training"><span>⚙</span><label data-ar="التدريب والبث الحي" data-en="Training & live">التدريب والبث الحي</label></button></nav>
@@ -98,6 +98,19 @@
 <div class="card output"><div class="result-top"><span class="circle">✧</span><small>WAV</small></div><h3 data-ar="الملف المعالج" data-en="Processed audio">الملف المعالج</h3><p class="hint" data-ar="لا تُضاف مؤثرات وهمية. التحسين يُنفّذ على العينات الرقمية." data-en="Signal processing operates on actual PCM samples.">لا تُضاف مؤثرات وهمية. التحسين يُنفّذ على العينات الرقمية.</p><div class="wave">▃▅▇▄▂▆▃█▄▅▇▃</div><div id="enhanceStatus" class="status" role="status"></div><audio id="enhanceAudioResult" controls hidden></audio><a id="enhanceDownload" download hidden class="download">تنزيل WAV ↓</a></div></div>
 <div class="card extra-card"><h3 data-ar="تحليل ملف WAV" data-en="Analyze WAV file">تحليل ملف WAV</h3><p class="hint" data-ar="عرض مدة التسجيل، والذروة، والتشوه الرقمي، والصمت." data-en="Inspect duration, signal peaks, clipping and quiet sections.">عرض مدة التسجيل، والذروة، والتشوه الرقمي، والصمت.</p><form id="qualityForm" class="inline-upload"><input id="qualityAudio" name="audio" type="file" accept=".wav" required><button class="outline" type="submit" data-ar="تحليل" data-en="Analyze">تحليل</button></form><pre id="qualityResult" class="report" aria-live="polite"></pre></div>
 </section>
+
+<section class="tab" id="stems">
+<div class="heading"><div><h2 data-ar="فصل الصوت عن الموسيقى — Demucs" data-en="Separate vocals and instruments — Demucs">فصل الصوت عن الموسيقى — Demucs</h2>
+<p data-ar="تشغيل نموذج Demucs الحقيقي محليًا؛ سيحفظ ملف ZIP يحوي مساري vocals.wav وinstrumental.wav." data-en="Run the original local Demucs model and download verified vocals.wav / instrumental.wav stems in a ZIP.">تشغيل نموذج Demucs الحقيقي محليًا؛ سيحفظ ملف ZIP يحوي مساري vocals.wav وinstrumental.wav.</p></div><span class="pill">META DEMUCS · LOCAL</span></div>
+<div class="cols"><form id="stemsForm" class="card form">
+<label for="stemsAudio" data-ar="الأغنية أو التسجيل الصوتي" data-en="Source track">الأغنية أو التسجيل الصوتي</label>
+<input id="stemsAudio" name="audio" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a" required>
+<label class="consent"><input type="checkbox" name="consent" value="true" required><span data-ar="أملك حق استعمال هذه المادة الصوتية." data-en="I have the rights to process this recording.">أملك حق استعمال هذه المادة الصوتية.</span></label>
+<button class="primary" type="submit"><span data-ar="ابدأ فصل المسارات" data-en="Separate stems">ابدأ فصل المسارات</span><span>→</span></button></form>
+<div class="card output"><div class="result-top"><span class="circle">♫</span><small>WAV × 2</small></div><h3 data-ar="تحميل الغناء والموسيقى" data-en="Download separated stems">تحميل الغناء والموسيقى</h3>
+<p data-ar="لا تُعرض نتائج وهمية عند غياب Demucs. يحتاج تشغيلًا منفصلًا وأوزان النموذج." data-en="No fake results when Demucs is not installed. Model weights download on first run.">لا تُعرض نتائج وهمية عند غياب Demucs. يحتاج تشغيلًا منفصلًا وأوزان النموذج.</p>
+<p id="stemsStatus" class="status" role="status"></p><a id="stemsDownload" class="download" download hidden data-ar="تنزيل ملف المسارات ZIP" data-en="Download WAV stems ZIP">تنزيل ملف المسارات ZIP</a></div></div>
+</section>
 <section class="tab" id="transcription">
 <div class="heading"><div><h2 data-ar="تفريغ الكلام إلى نص" data-en="Speech transcription">تفريغ الكلام إلى نص</h2><p data-ar="تحويل التسجيل إلى نص باستخدام Faster-Whisper المثبت محليًا، مع دعم العربية." data-en="Transcribe recordings to text with a separately installed Faster-Whisper model.">تحويل التسجيل إلى نص باستخدام Faster-Whisper المثبت محليًا، مع دعم العربية.</p></div><span class="pill">FASTER-WHISPER</span></div>
 <div class="cols"><form id="transcribeForm" class="card form">
@@ -141,4 +154,4 @@
 
 <footer><span>MINA VOICE STUDIO · MIT LICENSE</span><span data-ar="نسخة تطويرية • لم تُقارن صوتيًا بـ ElevenLabs" data-en="Early release • Not benchmarked against ElevenLabs">نسخة تطويرية • لم تُقارن صوتيًا بـ ElevenLabs</span></footer>
 </div></main></div><script src="/assets/app.js"></script>
-<script src="/assets/extras.js"></script><script src="/assets/applio.js"></script><script src="/assets/upstream.js"></script></body></html>
+<script src="/assets/extras.js"></script><script src="/assets/applio.js"></script><script src="/assets/upstream.js"></script><script src="/assets/stems.js"></script></body></html>

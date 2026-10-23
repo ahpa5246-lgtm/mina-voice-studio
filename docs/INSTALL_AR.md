@@ -91,3 +91,15 @@ $env:CHATTERBOX_PYTHON = (Resolve-Path '.venv-chatterbox\Scripts\python.exe').Pa
 Restart Mina from the same terminal. Select **Multilingual V3** for Arabic and the supported 23-language list. **Turbo** and **Nano** are English-only in their upstream model releases and require an audio reference. The first job loads upstream model weights; later jobs can reuse one warm model in a private subprocess without reloading. Switching models releases the previous model's cache; the Engines screen has a **Unload model** action to free GPU memory.
 
 The automatic subtitles export uses real Faster-Whisper segments: after a successful transcription, click **SRT** or **VTT**. It does not translate, align lips, or generate a voice automatically. For actual generation-quality checks on the RTX GPU, run `scripts/smoke_audio.py` for each model and measure audio content and real-time factor.
+
+## فصل الغناء والموسيقى عبر Demucs
+
+أضيف تبويب «فصل الغناء والموسيقى» الذي يشغل **Demucs الأصلي من Meta**، ولا يصنع نتائج وهمية. ثبتي Demucs في بيئة Python 3.11 خاصة به، مع FFmpeg عند الحاجة:
+
+```powershell
+py -3.11 -m venv .venv-demucs
+.\.venv-demucs\Scripts\python.exe -m pip install demucs
+$env:DEMUCS_PYTHON = (Resolve-Path '.venv-demucs\Scripts\python.exe').Path
+```
+
+شغلي Mina من نفس نافذة PowerShell. عند نجاح الفصل ستظهر حزمة ZIP تضم ملف الغناء `vocals.wav` وموسيقى الخلفية `instrumental.wav`. يعتمد جودة الفصل على النموذج والأغنية. نموذج Demucs مفتوح المصدر بترخيص MIT لكن المستودع الأصلي مؤرشف؛ قد تظهر مشكلات توافق مع بعض إصدارات المكتبات الحديثة، ولم نجرب توليد المسارات الفعلي على GPU هنا.
