@@ -24,7 +24,9 @@ MAX_TOTAL_CHARS = 6000
 MAX_EPISODE_BYTES = 180 * 1024 * 1024
 ID = re.compile(r"^[a-f0-9]{32}$")
 LANGUAGES = set("ar da de el en es fi fr he hi it ja ko ms nl no pl pt ru sv sw tr zh".split())
-MODELS = {"multilingual-v3", "turbo", "nano"}
+MODELS = {"multilingual-v3", "turbo", "nano", "qwen-clone", "qwen-custom"}
+QWEN_LANGUAGE = {"en":"English","zh":"Chinese","ja":"Japanese","ko":"Korean","de":"German","fr":"French","ru":"Russian","pt":"Portuguese","es":"Spanish","it":"Italian"}
+QWEN_SPEAKERS = {"Vivian","Serena","Uncle_Fu","Dylan","Eric","Ryan","Aiden","Ono_Anna","Sohee"}
 DELIVERY = {
     # Approximate Chatterbox conditioning parameters, not discrete emotion synthesis.
     "neutral": (0.0, 0.0),
@@ -32,6 +34,9 @@ DELIVERY = {
     "sarcastic": (-0.03, -0.12),
     "quiet": (-0.12, 0.12),
     "dramatic": (0.24, -0.18),
+    "angry": (0.25, -0.20),
+    "sad": (-0.10, 0.12),
+    "crying": (0.22, -0.20),
 }
 
 
@@ -42,7 +47,8 @@ def storage(root: Path) -> Path:
 
 
 def validate_character(name: str, voice_id: str, model: str, language: str,
-                       exaggeration: float, cfg_weight: float) -> dict:
+                       exaggeration: float, cfg_weight: float,
+                       speaker: str = "Ryan", reference_text: str = "") -> dict:
     name = name.strip()
     if not name or len(name) > 72 or any(ord(c) < 32 for c in name):
         raise ValueError("Character name must have 1-72 printable characters")
@@ -50,13 +56,22 @@ def validate_character(name: str, voice_id: str, model: str, language: str,
         raise ValueError("Invalid reference recording identifier")
     if model not in MODELS or language not in LANGUAGES:
         raise ValueError("Unknown voice model or language")
-    if model != "multilingual-v3" and (language != "en" or not voice_id):
+    if model in {"turbo","nano"} and (language != "en" or not voice_id):
         raise ValueError("Turbo/Nano require English and an authorized voice reference")
+    if model in {"qwen-clone","qwen-custom"} and language not in QWEN_LANGUAGE:
+        raise ValueError("Official Qwen3-TTS does not support Arabic")
+    if model == "qwen-clone" and (not voice_id or not 3 <= len(reference_text.strip()) <= 500):
+        raise ValueError("Qwen clone needs a reference WAV and its exact transcript")
+    if model == "qwen-custom" and speaker not in QWEN_SPEAKERS:
+        raise ValueError("Select an official Qwen preset speaker")
+    if len(reference_text) > 500:
+        raise ValueError("Reference transcript exceeds 500 characters")
     if not 0.25 <= exaggeration <= 1.0 or not 0 <= cfg_weight <= 1:
         raise ValueError("Invalid expressiveness or guidance")
     return {"name": name, "voice_id": voice_id, "model": model,
             "language": language, "exaggeration": exaggeration,
-            "cfg_weight": cfg_weight}
+            "cfg_weight": cfg_weight, "speaker": speaker,
+            "reference_text": reference_text.strip()}
 
 
 def all_characters(root: Path) -> list[dict]:
@@ -70,7 +85,8 @@ def all_characters(root: Path) -> list[dict]:
                 continue
             validate_character(
                 profile["name"], profile["voice_id"], profile["model"],
-                profile["language"], profile["exaggeration"], profile["cfg_weight"])
+                profile["language"], profile["exaggeration"], profile["cfg_weight"],
+                profile.get("speaker","Ryan"), profile.get("reference_text",""))
             result.append(profile)
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
             continue
@@ -88,8 +104,10 @@ def get_character(root: Path, identifier: str) -> dict:
 
 def create_character(root: Path, *, name: str, voice_id: str = "",
                      model: str = "multilingual-v3", language: str = "ar",
-                     exaggeration: float = 0.5, cfg_weight: float = 0.5) -> dict:
-    valid = validate_character(name, voice_id, model, language, exaggeration, cfg_weight)
+                     exaggeration: float = 0.5, cfg_weight: float = 0.5,
+                     speaker: str = "Ryan", reference_text: str = "") -> dict:
+    valid = validate_character(name, voice_id, model, language, exaggeration, cfg_weight,
+                               speaker, reference_text)
     if len(all_characters(root)) >= MAX_CHARACTERS:
         raise ValueError("Character profile capacity reached (128).")
     profile = {"id": uuid4().hex, **valid}
@@ -163,8 +181,14 @@ def assemble_episode(lines: list[dict], wav_files: list[Path], directory: Path) 
                 merged.setsampwidth(2)
                 merged.setframerate(rate)
             if sample_rate != rate or ch != channels:
-                raise ValueError(
-                    "Chatterbox clips have incompatible sample rates/channels; resample externally.")
+                # All output remains PCM16; Python 3.11/3.12 audioop does not alter pitch.
+                import audioop
+                if ch != channels:
+                    samples = (audioop.tomono(samples,2,.5,.5) if ch == 2
+                               else audioop.tostereo(samples,2,1,1))
+                    ch = channels
+                if sample_rate != rate:
+                    samples = audioop.ratecv(samples,2,channels,sample_rate,rate,None)[0]
             written += len(samples)
             if written > MAX_EPISODE_BYTES:
                 raise ValueError("Episode WAV exceeds allowed size.")
@@ -217,8 +241,8 @@ def render_episode(root: Path, directory: Path, script: list[dict],
         profile = line["character"]
         voice_id = profile["voice_id"]
         reference = resolve_reference(voice_id) if voice_id else None
-        if profile["model"] != "multilingual-v3" and reference is None:
-            raise ValueError("English Turbo/Nano profiles need a real reference recording.")
+        if profile["model"] in {"turbo","nano","qwen-clone"} and reference is None:
+            raise ValueError("This character needs a real reference recording.")
         direction = DELIVERY[line["delivery"]]
         exaggeration = min(1.0, max(0.25, profile["exaggeration"] + direction[0]))
         cfg_weight = min(1.0, max(0, profile["cfg_weight"] + direction[1]))
@@ -226,10 +250,32 @@ def render_episode(root: Path, directory: Path, script: list[dict],
         target = directory / f"line-{index+1:03}.wav"
         text_file.write_text(line["text"], encoding="utf-8")
         on_line(index + 1, len(script))
-        engines.synthesize(
-            text_file=text_file, output=target, language=profile["language"],
-            reference=reference, model=profile["model"],
-            exaggeration=exaggeration, cfg_weight=cfg_weight)
+        if profile["model"].startswith("qwen-"):
+            from studio.qwen_runtime import synthesize
+            acting = {
+                "neutral":"",
+                "energetic":"Speak with animated excitement and lively pacing.",
+                "sarcastic":"Deliver the words with dry, skeptical sarcasm.",
+                "quiet":"Speak quietly with warm, restrained emotion.",
+                "dramatic":"Speak theatrically with expressive pauses.",
+                "angry":"Speak with audible frustration and anger.",
+                "sad":"Speak in a subdued, sad tone.",
+                "crying":"Speak tearfully, with a trembling emotional tone.",
+            }
+            # Qwen Base clone does not support the acting instruct argument;
+            # expressive per-line prompts are available for fixed preset speakers.
+            synthesize(text_file=text_file,output=target,
+                       mode="clone" if profile["model"]=="qwen-clone" else "custom",
+                       language=QWEN_LANGUAGE[profile["language"]],
+                       speaker=profile.get("speaker","Ryan"),
+                       ref_audio=reference,
+                       ref_text=profile.get("reference_text",""),
+                       instruct=(acting[line["delivery"]] if profile["model"]=="qwen-custom" else ""))
+        else:
+            engines.synthesize(
+                text_file=text_file, output=target, language=profile["language"],
+                reference=reference, model=profile["model"],
+                exaggeration=exaggeration, cfg_weight=cfg_weight)
         _read_wav(target)  # Fail now, not after marking the episode complete.
         renders.append(target)
     return assemble_episode(script, renders, directory)

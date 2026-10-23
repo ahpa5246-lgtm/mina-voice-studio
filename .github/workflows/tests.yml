@@ -21,6 +21,7 @@ jobs:
       - run: node --check studio/static/upstream.js
       - run: node --check studio/static/stems.js
       - run: node --check studio/static/cast.js
+      - run: python -c "import json; json.load(open('kaggle/cartoon_voices_qwen3.ipynb', encoding='utf-8'))"
       - run: python -m pytest -q
   browser:
     runs-on: ubuntu-latest

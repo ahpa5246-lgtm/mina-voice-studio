@@ -194,5 +194,7 @@ def test_sample_rate_mismatch_is_explicit_failure(tmp_path):
         writer.writeframes(b"\x00\x01"*2205)
     lines=[{"character":profile,"text":"one","delivery":"neutral","pause_ms":250},
            {"character":profile,"text":"two","delivery":"neutral","pause_ms":0}]
-    with pytest.raises(ValueError,match="incompatible sample rates"):
-        cast.assemble_episode(lines,[a,b],tmp_path)
+    result=cast.assemble_episode(lines,[a,b],tmp_path)
+    assert result["sample_rate"]==16000
+    with wave.open(str(tmp_path/"output.wav"),"rb") as merged:
+        assert merged.getnframes()>1600  # resampled real second clip

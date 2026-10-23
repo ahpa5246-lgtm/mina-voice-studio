@@ -292,3 +292,32 @@ def test_cartoon_turbo_model_enforces_english_and_reference(page):
     current.locator("#castModel").select_option("multilingual-v3")
     assert current.locator("#castVoice").get_attribute("required") is None
     assert not errors,errors
+
+def test_text_voice_design_shows_dependency_error_instead_of_fake_voice(page):
+    current,errors=page
+    current.locator('.nav[data-tab="cast"]').click()
+    current.locator("#qwenVoiceDescription").fill(
+        "An expressive young woman with a slightly husky, ironic English delivery.")
+    current.locator('#qwenDesignForm input[name="consent"]').check()
+    current.locator('#qwenDesignForm button[type="submit"]').click()
+    current.wait_for_function("""() => {
+        const value=document.querySelector('#qwenDesignStatus').textContent;
+        return value.includes('qwen-tts') || value.includes('QWEN_PYTHON') || value.includes('503');
+    }""",timeout=15000)
+    assert current.locator("#qwenDesignPreview").is_hidden()
+    assert not errors,errors
+
+
+def test_qwen_cast_modes_enforce_legal_languages_and_reference(page):
+    current,errors=page
+    current.locator('.nav[data-tab="cast"]').click()
+    current.locator("#castModel").select_option("qwen-clone")
+    assert current.locator("#castLang").input_value()=="en"
+    assert current.locator('#castLang option[value="ar"]').is_disabled()
+    assert current.locator("#castVoice").get_attribute("required") is not None
+    current.locator("#castModel").select_option("qwen-custom")
+    assert current.locator("#castVoice").get_attribute("required") is None
+    assert current.locator("#castSpeaker").is_enabled()
+    current.locator("#castModel").select_option("multilingual-v3")
+    assert current.locator("#castSpeaker").is_disabled()
+    assert not errors,errors

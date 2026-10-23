@@ -45,7 +45,9 @@ def _metadata(directory: Path) -> dict | None:
         if not audio.is_file() or audio.parent != directory:
             return None
         return {"id": data["id"], "name": data["name"],
-                "created": data["created"], "filename": data["filename"]}
+                "created": data["created"], "filename": data["filename"],
+                "origin": data.get("origin","uploaded"),
+                "seed_text": data.get("seed_text","") if data.get("origin")=="qwen-design" else ""}
     except (OSError, KeyError, ValueError, TypeError):
         return None
 

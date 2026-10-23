@@ -26,13 +26,23 @@
     if (entries.some(entry => entry.value === oldValue)) select.value = oldValue;
   }
   function syncModel() {
-    const englishOnly = $("#castModel").value !== "multilingual-v3";
+    const model = $("#castModel").value;
+    const englishOnly = model === "turbo" || model === "nano";
+    const qwen = model.startsWith("qwen-");
+    const allowedQwen = new Set(["en","zh","ja","ko","de","fr","ru","pt","es","it"]);
     const lang = $("#castLang");
-    if (englishOnly) lang.value = "en";
-    for (const item of lang.options) item.disabled = englishOnly && item.value !== "en";
-    $("#castVoice").required = englishOnly;
+    if (englishOnly || (qwen && !allowedQwen.has(lang.value))) lang.value = "en";
+    for (const item of lang.options) item.disabled =
+      englishOnly ? item.value !== "en" : qwen && !allowedQwen.has(item.value);
+    $("#castVoice").required = englishOnly || model === "qwen-clone";
+    $("#castSpeaker").disabled = model !== "qwen-custom";
+    $("#castReferenceText").disabled = model !== "qwen-clone";
   }
   $("#castModel").addEventListener("change", syncModel);
+  $("#castVoice").addEventListener("change", () => {
+    const selected = availableVoices.find(v => v.id === $("#castVoice").value);
+    if(selected?.origin === "qwen-design") $("#castReferenceText").value = selected.seed_text || "";
+  });
   const mainLanguages = Array.from($("#language").options, el => ({value: el.value, label: el.textContent}));
   const castLang = $("#castLang");
   const current = castLang.value;
@@ -110,7 +120,8 @@
     for (const [key,ar,en] of [
       ["neutral","طبيعي","Neutral"],["energetic","حيوي","Energetic"],
       ["sarcastic","ساخر تقريبًا","Sarcastic approximation"],
-      ["quiet","هادئ","Quiet"],["dramatic","درامي","Dramatic approximation"]
+      ["quiet","هادئ","Quiet"],["dramatic","درامي","Dramatic approximation"],
+      ["angry","غاضب","Angry"],["sad","حزين","Sad"],["crying","يبكي","Crying"]
     ]) delivery.append(option(key,say(ar,en)));
     const pause = document.createElement("input");pause.className="cast-pause";
     pause.type="number";pause.min="0";pause.max="2000";pause.step="50";pause.value="250";
@@ -124,6 +135,38 @@
       label.textContent=say("جملة ","Line ")+(i+1);
     });
   }
+  $("#qwenDesignForm").addEventListener("submit",async event => {
+    event.preventDefault();
+    const form = event.currentTarget, button=form.querySelector('[type="submit"]');
+    button.disabled=true;
+    const status=$("#qwenDesignStatus");
+    const preview=$("#qwenDesignPreview");
+    preview.hidden=true;
+    status.textContent=say("إرسال طلب تصميم الصوت...", "Submitting voice design request...");
+    try{
+      const job=await request("/api/qwen/design",{method:"POST",body:new FormData(form)});
+      let finished=false;
+      for(let i=0;i<900;i++){
+        const result=await request("/api/jobs/"+encodeURIComponent(job.id));
+        if(result.status==="failed") throw Error(result.error||"Qwen design failed");
+        if(result.status==="completed"){
+          if(!result.voice?.id||!result.download)throw Error("No voice was saved.");
+          preview.src=result.download;preview.hidden=false;
+          status.textContent=say("صوت جديد محفوظ في المكتبة: ","New designed voice saved: ")+result.voice.name;
+          await refreshVoices();
+          $("#castModel").value="qwen-clone";syncModel();
+          $("#castVoice").value=result.voice.id;
+          $("#castVoice").dispatchEvent(new Event("change"));
+          $("#castName").value=result.voice.name;
+          finished=true;break;
+        }
+        status.textContent=say("يجري تصميم الهوية الصوتية...", "Generating voice identity...");
+        await sleep(1700);
+      }
+      if(!finished)throw Error("Design job polling timed out");
+    }catch(error){status.textContent=err(error);}
+    finally{button.disabled=false;}
+  });
   $("#addCastLine").addEventListener("click",addLine);
   $("#castForm").addEventListener("submit",async event => {
     event.preventDefault();
