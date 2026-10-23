@@ -21,6 +21,7 @@ async function watchJob(id, statusNode, audioNode, linkNode, textNode){
     if(result.status==="completed"){
       statusNode.textContent=text("انتهت المعالجة بنجاح","Completed successfully");
       if(result.training) statusNode.textContent += " — "+result.training.model_name+" ("+result.training.checkpoint_count+" checkpoints)";
+      if(result.training) statusNode.textContent += " — "+result.training.model_name+" ("+result.training.checkpoint_count+" checkpoints)";
       if(result.download&&audioNode&&linkNode){
         audioNode.src=result.download;audioNode.hidden=false;
         linkNode.href=result.download;linkNode.hidden=false;
@@ -98,6 +99,7 @@ $("#enhanceForm").addEventListener("submit",ev=>runJob(ev,"/api/enhance","enhanc
 $("#transcribeForm").addEventListener("submit",ev=>runJob(ev,"/api/transcribe","transcribe",true));
 $("#dubForm").addEventListener("submit",ev=>runJob(ev,"/api/voiceover","dub"));
 $("#providerForm").addEventListener("submit",ev=>runJob(ev,"/api/provider/speech","provider"));
+$("#trainingForm").addEventListener("submit",ev=>runJob(ev,"/api/train","train"));
 $("#qualityForm").addEventListener("submit",async(ev)=>{
   ev.preventDefault();const target=$("#qualityResult");target.textContent=text("جارٍ التحليل...","Analyzing...");
   try{const json=await api("/api/analyze",{method:"POST",body:new FormData(ev.currentTarget)});target.textContent=JSON.stringify(json,null,2);}
