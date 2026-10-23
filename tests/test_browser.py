@@ -90,8 +90,8 @@ def page(browser, site):
 def test_ui_loads_all_nine_real_workspaces(page):
     current, errors = page
     assert current.title() == "Mina Voice Studio"
-    assert current.locator(".nav").count() == 9
-    assert current.locator(".tab").count() == 9
+    assert current.locator(".nav").count() == 10
+    assert current.locator(".tab").count() == 10
     assert current.locator("#speech").is_visible()
     assert not errors, errors
 
@@ -196,4 +196,24 @@ def test_training_launcher_shows_missing_setup_instead_of_fake_success(page):
       const msg = document.querySelector('#trainStatus').textContent;
       return msg.includes('503') || msg.includes('APPLIO_TRAIN_DATA') || msg.includes('Install Applio');
     }""", timeout=15000)
+    assert not errors, errors
+
+
+def test_applio_advanced_forms_are_connected_and_missing_install_is_reported(page):
+    current, errors = page
+    current.locator('.nav[data-tab="applio"]').click()
+    assert current.locator("#rvcBatchForm").is_visible()
+    assert current.locator("#rvcBlendForm").is_visible()
+    current.locator("#rvcBatchAudio").set_input_files([
+        {"name":"one.wav", "mimeType":"audio/wav", "buffer":wav_bytes()},
+        {"name":"two.wav", "mimeType":"audio/wav", "buffer":wav_bytes()},
+    ])
+    current.locator("#rvcBatchModel").evaluate("(element) => {element.innerHTML='<option value=\"missing.pth\">Missing model</option>';element.value='missing.pth';}")
+    current.locator('#rvcBatchForm input[name="consent"]').check()
+    current.locator('#rvcBatchForm button[type="submit"]').click()
+    current.wait_for_function("""() => {
+      const status=document.querySelector("#rvcBatchStatus").textContent;
+      return status.includes("Applio") || status.includes("503") || status.includes("Install");
+    }""",timeout=15000)
+    assert current.locator("#rvcBatchDownload").is_hidden()
     assert not errors, errors
