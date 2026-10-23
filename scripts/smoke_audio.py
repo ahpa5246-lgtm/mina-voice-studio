@@ -9,6 +9,9 @@ import argparse
 import json
 from pathlib import Path
 import time
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from studio import engines
 from scripts.quality_report import analyze_wav
@@ -25,11 +28,11 @@ def benchmark(operation: str, *, output: Path, text: str | None = None,
             raise ValueError("Speech smoke test requires --text.")
         text_path = output.with_name(output.stem + ".text.txt")
         text_path.write_text(text, encoding="utf-8")
-        engines.synthesize(text_file=text_path, reference=reference, language=language, output=output)
+        engines.synthesize(text_file=text_path, reference=reference.resolve() if reference else None, language=language, output=output)
     elif operation == "conversion":
         if audio is None or model_id is None:
             raise ValueError("Conversion smoke test needs --audio and --model-id.")
-        engines.convert(audio=audio, model_id=model_id, output=output)
+        engines.convert(audio=audio.resolve(), model_id=model_id, output=output)
     else:
         raise ValueError("Unknown operation.")
     elapsed = time.perf_counter() - started
