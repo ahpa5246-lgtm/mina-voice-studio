@@ -19,7 +19,7 @@ from studio import audio_tools, engines, providers, training, separation
 from studio.text import normalize_text, MAX_DOCUMENT_CHARS
 
 router = APIRouter(prefix="/api")
-VOICE_LIMIT = 24
+VOICE_LIMIT = 128
 NAME_LIMIT = 72
 VOICE_ID = re.compile(r"^[0-9a-f]{32}$")
 

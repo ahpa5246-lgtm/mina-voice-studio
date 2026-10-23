@@ -7,7 +7,7 @@
 <aside class="side"><div class="logo"><span class="logo-symbol">≋</span><div>MINA <b>VOICE</b><small>STUDIO · OPEN SOURCE</small></div></div>
 <div class="side-label" data-ar="مساحة العمل" data-en="WORKSPACE">مساحة العمل</div>
 <nav><button class="nav current" data-tab="speech"><span>◉</span><label data-ar="توليد الكلام" data-en="Generate speech">توليد الكلام</label></button>
-<button class="nav" data-tab="convert"><span>◎</span><label data-ar="تحويل الصوت" data-en="Voice conversion">تحويل الصوت</label></button>
+<button class="nav" data-tab="cast"><span>♟</span><label data-ar="استوديو شخصيات الكرتون" data-en="Cartoon cast studio">استوديو شخصيات الكرتون</label></button><button class="nav" data-tab="convert"><span>◎</span><label data-ar="تحويل الصوت" data-en="Voice conversion">تحويل الصوت</label></button>
 <button class="nav" data-tab="engines"><span>▦</span><label data-ar="المحركات والنماذج" data-en="Engines & models">المحركات والنماذج</label></button><button class="nav" data-tab="applio"><span>⚗</span><label data-ar="مختبر Applio" data-en="Applio Pro tools">مختبر Applio</label></button><button class="nav" data-tab="library"><span>♬</span><label data-ar="مكتبة الأصوات" data-en="Voice library">مكتبة الأصوات</label></button>
 <button class="nav" data-tab="cleanup"><span>✧</span><label data-ar="تحسين الصوت وتحليله" data-en="Audio enhancement">تحسين الصوت وتحليله</label></button>
 <button class="nav" data-tab="stems"><span>♫</span><label data-ar="فصل الغناء والموسيقى" data-en="Vocal separation">فصل الغناء والموسيقى</label></button><button class="nav" data-tab="transcription"><span>≡</span><label data-ar="تفريغ الكلام" data-en="Transcription">تفريغ الكلام</label></button>
@@ -22,6 +22,56 @@
 <h1 data-ar="صوتك، كلماتك، <em>إمكانيات جديدة.</em>" data-en="Your voice. Your words. <em>New possibilities.</em>">صوتك، كلماتك، <em>إمكانيات جديدة.</em></h1>
 <p data-ar="توليد الكلام وتحويل الصوت من واجهة بسيطة، باستخدام المحركات المثبتة على جهازك. دون ادّعاء تشغيل نماذج غير مثبتة." data-en="Generate speech and convert recordings using real engines installed on your computer. Unavailable features are labeled clearly.">توليد الكلام وتحويل الصوت من واجهة بسيطة، باستخدام المحركات المثبتة على جهازك. دون ادّعاء تشغيل نماذج غير مثبتة.</p></div>
 <div class="pulse" aria-hidden="true">▂ ▆ ▃ █ ▂ ▅ ▇ ▄ ▂ ▆ █ ▃ ▅ ▂ ▃ ▇ ▅ ▂ ▆ ▁ ▃ ▆ ▄ ▂</div>
+
+<section class="tab" id="cast">
+<div class="heading"><div><h2 data-ar="استوديو الشخصيات والحوار" data-en="Character voice casting studio">استوديو الشخصيات والحوار</h2>
+<p data-ar="احفظي شخصية لكل صوت مرجعي مرخّص، اكتبي حوار الحلقة، ثم أنتجي التسجيل الكامل والمقاطع المنفصلة وملف SRT. لكل صوت مميز عينة مختلفة؛ تغيير الإعدادات لا يصنع هوية جديدة مضمونة." data-en="Assign each character an authorized voice reference, write an episode script, then export the full track, individual line WAVs and SRT captions. Distinct identities require distinct references.">احفظي شخصية لكل صوت مرجعي مرخّص، اكتبي حوار الحلقة، ثم أنتجي التسجيل الكامل والمقاطع المنفصلة وملف SRT. لكل صوت مميز عينة مختلفة؛ تغيير الإعدادات لا يصنع هوية جديدة مضمونة.</p>
+</div><span class="pill">CARTOON CAST · 48 LINES</span></div>
+<div class="cols">
+<form id="castForm" class="card form">
+<h3 data-ar="إنشاء شخصية بصوت ثابت" data-en="Create a recurring character">إنشاء شخصية بصوت ثابت</h3>
+<label for="castName" data-ar="اسم الشخصية" data-en="Character name">اسم الشخصية</label>
+<input id="castName" type="text" name="name" maxlength="72" required placeholder="Shoko">
+<label class="space" for="castVoice" data-ar="التسجيل المرجعي (من مكتبة الأصوات)" data-en="Authorized voice reference from library">التسجيل المرجعي (من مكتبة الأصوات)</label>
+<select id="castVoice" name="voice_id"><option value="">Default voice · not distinct</option></select>
+<p class="hint" data-ar="أضيفي الأصوات إلى مكتبة الأصوات أولًا. المرجع المختلف أساس تمييز الشخصيات؛ الاسم وحده لا يغيّر الصوت." data-en="Save voice clips to the voice library first. A new label by itself does not produce a new timbre.">أضيفي الأصوات إلى مكتبة الأصوات أولًا. المرجع المختلف أساس تمييز الشخصيات؛ الاسم وحده لا يغيّر الصوت.</p>
+<div class="inputs space">
+<div><label for="castModel" data-ar="المحرك" data-en="Model">المحرك</label>
+<select id="castModel" name="model"><option value="multilingual-v3">Multilingual V3 (23 languages)</option><option value="turbo">Turbo (English)</option><option value="nano">Nano (English)</option></select></div>
+<div><label for="castLang" data-ar="اللغة" data-en="Language">اللغة</label>
+<select id="castLang" name="language"><option value="ar">العربية</option><option value="en">English</option><option value="fr">Français</option><option value="es">Español</option><option value="ja">日本語</option><option value="de">Deutsch</option></select></div>
+</div>
+<div class="inputs space">
+<div><label for="castExag" data-ar="التعبير الصوتي (0.25–1)" data-en="Expressiveness (0.25–1)">التعبير الصوتي (0.25–1)</label><input id="castExag" name="exaggeration" type="number" step=".05" min=".25" max="1" value=".5"></div>
+<div><label for="castCfg" data-ar="توجيه الهوية والأداء (0–1)" data-en="Voice guidance (0–1)">توجيه الهوية والأداء (0–1)</label><input id="castCfg" name="cfg_weight" type="number" min="0" max="1" step=".05" value=".5"></div>
+</div>
+<label class="consent"><input name="consent" type="checkbox" value="true" required><span data-ar="أملك حق استخدام التسجيل للشخصية." data-en="I am authorized to use this speaker reference.">أملك حق استخدام التسجيل للشخصية.</span></label>
+<button class="primary" type="submit"><span data-ar="إضافة الشخصية" data-en="Add character">إضافة الشخصية</span><span>+</span></button>
+<p class="status" id="castStatus" role="status"></p>
+</form>
+<div class="card">
+<h3 data-ar="طاقم الأصوات" data-en="Voice cast">طاقم الأصوات</h3>
+<p class="hint" data-ar="يمكن حفظ 128 ملف شخصية؛ عدد الأصوات المميزة يعتمد على التسجيلات المرجعية المتاحة وجودتها." data-en="Store up to 128 profiles; unique voices depend on available distinct reference recordings.">يمكن حفظ 128 ملف شخصية؛ عدد الأصوات المميزة يعتمد على التسجيلات المرجعية المتاحة وجودتها.</p>
+<div id="castList" class="stack-list" aria-live="polite"></div>
+</div></div>
+<div class="card extra-card">
+<div class="cast-actions"><div><h3 data-ar="سيناريو الحلقة" data-en="Episode dialogue">سيناريو الحلقة</h3>
+<p class="hint" data-ar="حتى 48 جملة و6,000 حرف إجمالًا. التوجيهات تقريبية عبر إعدادات Chatterbox، وليست وسوم انفعالات مضمونة." data-en="Up to 48 dialogue lines and 6,000 total characters. Performance cues approximate model controls; they are not guaranteed emotional styles.">حتى 48 جملة و6,000 حرف إجمالًا. التوجيهات تقريبية عبر إعدادات Chatterbox، وليست وسوم انفعالات مضمونة.</p></div>
+<button id="addCastLine" type="button" class="outline" data-ar="+ إضافة جملة" data-en="+ Add dialogue line">+ إضافة جملة</button></div>
+<form id="episodeForm" class="form">
+<div id="episodeLines" class="episode-lines" aria-live="polite"></div>
+<label class="consent"><input type="checkbox" id="episodeConsent" required><span data-ar="أملك الإذن باستخدام جميع أصوات الشخصيات في هذه الحلقة." data-en="I have permission to synthesize every character in this episode.">أملك الإذن باستخدام جميع أصوات الشخصيات في هذه الحلقة.</span></label>
+<button type="submit" class="primary"><span data-ar="توليد الحلقة صوتيًا" data-en="Render cartoon episode">توليد الحلقة صوتيًا</span><span>→</span></button>
+</form><p class="status" id="episodeStatus" role="status"></p>
+<div id="episodeProgress" class="hint" role="status"></div>
+<audio id="episodePreview" controls hidden></audio>
+<div class="cast-downloads">
+<a id="episodeZip" class="download" download hidden data-ar="تنزيل الحلقة وجميع الجمل ZIP" data-en="Download episode and every WAV line (ZIP)">تنزيل الحلقة وجميع الجمل ZIP</a>
+<a id="episodeSrt" class="download" download hidden data-ar="تنزيل الترجمة الزمنية SRT" data-en="Download timed subtitles (SRT)">تنزيل الترجمة الزمنية SRT</a>
+</div>
+</div>
+</section>
+
 <section class="tab active" id="speech">
 <div class="heading"><div><h2 data-ar="توليد الكلام" data-en="Generate speech">توليد الكلام</h2><p data-ar="اكتبي نصًا بالعربية أو الإنجليزية، واختاري عينة صوتية لاستنساخها عند الحاجة." data-en="Write text and optionally upload a sample of a voice you have permission to use.">اكتبي نصًا بالعربية أو الإنجليزية، واختاري عينة صوتية لاستنساخها عند الحاجة.</p></div><span class="pill">CHATTERBOX FAMILY</span></div>
 <div class="cols"><form id="speechForm" class="card form">
@@ -154,4 +204,4 @@
 
 <footer><span>MINA VOICE STUDIO · MIT LICENSE</span><span data-ar="نسخة تطويرية • لم تُقارن صوتيًا بـ ElevenLabs" data-en="Early release • Not benchmarked against ElevenLabs">نسخة تطويرية • لم تُقارن صوتيًا بـ ElevenLabs</span></footer>
 </div></main></div><script src="/assets/app.js"></script>
-<script src="/assets/extras.js"></script><script src="/assets/applio.js"></script><script src="/assets/upstream.js"></script><script src="/assets/stems.js"></script></body></html>
+<script src="/assets/extras.js"></script><script src="/assets/applio.js"></script><script src="/assets/upstream.js"></script><script src="/assets/stems.js"></script><script src="/assets/cast.js"></script></body></html>

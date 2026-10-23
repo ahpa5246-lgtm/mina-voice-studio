@@ -27,3 +27,18 @@
   .side .nav{padding:10px 12px}
   .side-bottom{flex-shrink:0;padding-top:22px}
 }
+
+/* Character voices and script production: compact multi-line editorial workflow */
+.cast-actions{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+.cast-actions h3{margin-bottom:5px}
+.cast-line{border:1px solid #315072;background:linear-gradient(110deg,#0d1a2b,#12243b);border-radius:14px;padding:15px;margin:14px 0;display:grid;gap:11px}
+.cast-line-header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cast-line-label{font-weight:700;color:#b9daff}
+.cast-line-header .outline{padding:3px 12px;min-width:34px}
+.cast-line .cast-text{width:100%;border:1px solid #2f4763;border-radius:9px;background:#0a1628;color:#e6f3ff;padding:13px;resize:vertical;line-height:1.8}
+.cast-line-actions{display:grid;grid-template-columns:minmax(140px,2fr) minmax(120px,1.3fr) minmax(90px,.7fr);gap:10px}
+.cast-line select,.cast-line .cast-pause,#castForm select,#castForm input[type="number"]{border:1px solid #37516a;background:#0b192d;color:#eff6ff;padding:10px 12px;border-radius:9px;width:100%;min-width:0}
+.cast-downloads{display:flex;flex-wrap:wrap;gap:14px;margin-top:18px}
+#episodeProgress{font-variant-numeric:tabular-nums;padding:7px 0}
+#episodePreview{width:100%;margin-top:13px}
+@media(max-width:720px){.cast-line-actions{grid-template-columns:1fr}.cast-actions{align-items:start;flex-direction:column}.cast-downloads{flex-direction:column}}

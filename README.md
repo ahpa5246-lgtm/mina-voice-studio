@@ -11,6 +11,7 @@ An Arabic-first, local-first open-source voice workstation. This is a developmen
 | Applio batch conversion | Converts 2–8 audio files via upstream batch inference, validates WAV outputs and downloads a ZIP | Installed Applio models and runtime |
 | Applio model blender | Merges two compatible RVC checkpoints using Applio's own blender, refusing overwrites | Models with compatible architectures |
 | Voice library | Save, list, preview, delete consented voice references | Stored locally in data/_voices |
+| Cartoon cast studio | Persist character profiles and render a multi-speaker dialogue as episode WAV + per-line WAVs + SRT + ZIP | Uses existing installed Chatterbox and authorized voice references; 128 profiles / 48 lines per job |
 | Audio enhancement | High-pass, peak normalization and optional gate on real PCM-16 samples | Conventional DSP, not neural denoising |
 | Audio analysis | Clipping, silence, RMS, peak and duration | PCM-16 WAV only |
 | Music/vocals separation | Run original Meta Demucs htdemucs two-stem CLI and export two verified WAV files in ZIP | Independent Demucs venv; weights/FFmpeg required |
@@ -89,3 +90,13 @@ $env:DEMUCS_PYTHON = (Resolve-Path '.venv-demucs\Scripts\python.exe').Path
 ```
 
 You will also need the multimedia decoder dependencies supported by Demucs, normally FFmpeg. Model weights can download on first use. This is an isolated heavy audio job, not a streaming/live separation feature.
+
+## Cartoon Voice Cast Studio — real dialogue renders
+
+The **Cartoon Cast** tab lets you create persistent character voice profiles, link existing consented recordings from the **Voice Library**, set a Chatterbox model/language and expressiveness/guidance values, enter multi-speaker dialogue lines, and select approximate delivery directions. It renders each line using the genuine installed model, concatenates PCM16 WAV clips, and exports: `episode.wav`, `dialogue.srt`, `manifest.json`, and one individual WAV file per line, wrapped in a ZIP. Failed lines fail the entire job.
+
+Distinct names do **not** create distinct vocal timbres. Different authorized reference samples (or suitable separately trained RVC models used in a later conversion step) are required for distinguishable speaker identities. No text-prompt speaker design akin to ElevenLabs Voice Design is implemented. No guarantee of Iraqi-accent accuracy, animated emotion, lip sync or actor-quality performance.
+
+**Current local capacity:** 128 saved voice recordings, 128 character profiles, up to 48 dialogue lines and 6,000 total characters per episode job. These are explicit software limits, not an unlimited voice-generation claim. Voice reference audio and character profiles persist until deleted; generated episode jobs are temporary and cleared through normal local retention.
+
+To test Chatterbox with actual authorized voice files, install the separate Chatterbox environment as in the [Arabic setup guide](docs/INSTALL_AR.md) and run `scripts/smoke_audio.py`. No GPU acoustic-quality claim is made by the HTTP/browser test suite.
