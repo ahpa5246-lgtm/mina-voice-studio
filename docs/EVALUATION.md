@@ -43,3 +43,13 @@ Keep licensed, consented WAV recordings in a **private** local dataset folder. E
 
 Audit the manifest with `python scripts/dataset_audit.py --root PRIVATE_DATASET_DIR --manifest PRIVATE_DATASET_DIR/manifest.jsonl`.
 The check validates paths, basic WAV format and consent *declarations*. It does not train a model or independently verify consent.
+
+## Real-engine smoke test on the target GPU
+
+After installing Chatterbox V3 in its isolated environment and setting `CHATTERBOX_PYTHON`, execute an authorized speech-reference test:
+
+```powershell
+python scripts/smoke_audio.py --operation speech --language ar --text "أهلًا، هذا اختبار للجودة الصوتية." --reference C:\path\to\consented-voice.wav --output data\benchmark-ar.wav
+```
+
+Use `--operation conversion --audio INPUT.wav --model-id MODEL_ID` for installed Applio. Both operations call **real** engine workers and emit WAV timing, real-time factor, clipping and silence diagnostics. Neither test measures dialect naturalness or speaker similarity. GPU inference and model-weight downloads have not been executed in GitHub Actions.
