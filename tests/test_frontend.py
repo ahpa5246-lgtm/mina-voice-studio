@@ -66,3 +66,11 @@ def test_ui_no_remote_script_dependency():
     assert '<script src="/assets/extras.js"' in HTML
     assert "data-ar=" in HTML and "data-en=" in HTML
     assert '<script src="/assets/app.js"' in HTML
+
+def test_every_rendered_form_has_a_javascript_submit_handler():
+    extras = (ROOT / "studio/static/extras.js").read_text(encoding="utf-8")
+    for name in ["voiceForm", "enhanceForm", "qualityForm", "transcribeForm",
+                 "dubForm", "providerForm", "trainingForm"]:
+        assert '$("#' + name + '").addEventListener("submit"' in extras, name
+    for name in ["speechForm", "convertForm"]:
+        assert '$("#' + name + '").addEventListener("submit"' in JS, name
