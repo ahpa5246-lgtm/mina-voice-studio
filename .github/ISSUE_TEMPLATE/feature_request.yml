@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest a user-focused improvement for cartoon voice production
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We prioritize features that improve real character-voice workflows, setup, reliability or measurable model evaluation. A model-name button without functioning inference is not considered an implemented feature.
+  - type: textarea
+    id: user_problem
+    attributes:
+      label: What user problem would this solve?
+      placeholder: An animator needs to retry a single line without regenerating a complete episode.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed workflow or interface
+      description: What should the user be able to do, step by step?
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria / how to test it
+      placeholder: |
+        - Given a saved episode, retry only one line
+        - Preserve other clips and timestamps
+        - Export a fresh validated ZIP
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and upstream packages considered (optional)
+  - type: checkboxes
+    id: ready
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked for an existing request.
+          required: true
+        - label: I understand GPU-backed and external-provider features require real-world tests.
+          required: true

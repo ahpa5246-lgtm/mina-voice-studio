@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup and troubleshooting
+    url: https://github.com/ahpa5246-lgtm/mina-voice-studio/blob/main/docs/INSTALL_AR.md
+    about: Read the setup guide before reporting an installation issue.
+  - name: Security and privacy
+    url: https://github.com/ahpa5246-lgtm/mina-voice-studio/blob/main/SECURITY.md
+    about: Do not expose sensitive information in a public issue.
