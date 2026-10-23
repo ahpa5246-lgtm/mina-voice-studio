@@ -321,3 +321,38 @@ def test_qwen_cast_modes_enforce_legal_languages_and_reference(page):
     current.locator("#castModel").select_option("multilingual-v3")
     assert current.locator("#castSpeaker").is_disabled()
     assert not errors,errors
+
+
+def test_saved_cartoon_project_roundtrips_through_real_browser(page):
+    current,errors=page
+    current.locator('.nav[data-tab="cast"]').click()
+    current.locator("#castName").fill("Project Hero")
+    current.locator('#castForm input[name="consent"]').check()
+    current.locator('#castForm button[type="submit"]').click()
+    current.wait_for_function(
+        '() => document.querySelector("#castList").textContent.includes("Project Hero")',
+        timeout=15000)
+    current.locator("#episodeProjectTitle").fill("Pilot scene project")
+    current.locator(".cast-speaker").first.select_option(label="Project Hero")
+    current.locator(".cast-text").first.fill("First saved line!")
+    current.locator("#addCastLine").click()
+    current.locator(".cast-speaker").nth(1).select_option(label="Project Hero")
+    current.locator(".cast-text").nth(1).fill("Second saved line.")
+    current.locator("#saveEpisodeProject").click()
+    current.wait_for_function(
+        '() => document.querySelector("#episodeProjectStatus").textContent.includes("1")',
+        timeout=15000)
+    assert current.locator("#episodeProjectSelect").input_value()
+    current.locator(".cast-text").nth(0).fill("Changed but not saved")
+    current.locator("#loadEpisodeProject").click()
+    current.wait_for_function(
+        '() => document.querySelector(".cast-text").value === "First saved line!"',
+        timeout=15000)
+    assert current.locator(".cast-text").count()==2
+    assert current.locator(".cast-text").nth(1).input_value()=="Second saved line."
+    current.locator("#saveEpisodeProject").click()
+    current.wait_for_function(
+        '() => document.querySelector("#episodeProjectStatus").textContent.includes("2")',
+        timeout=15000)
+    assert current.locator(".cast-retry").count()==2
+    assert not errors,errors

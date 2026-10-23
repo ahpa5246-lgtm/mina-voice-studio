@@ -48,6 +48,14 @@ Download ZIP → edit and animate in your preferred video editor
 
 **Not implemented:** low-latency live voice changing, automatic lip-sync, multitrack video timeline, an online unrestricted GPU demo, accounts or production multi-user authentication.
 
+## Cartoon episode projects and nondestructive line retries
+
+The **Cartoon Cast** page now saves up to 40 named, versioned local script projects. Use **Save script**, **Load project** and **Delete project** to resume dialogue editing without GPU inference. Saves use an atomic file replacement and an optimistic version check so two tabs cannot silently overwrite each other. Projects stay in `data/_projects/` when the browser closes. They reference existing character IDs, rather than embedding private recordings; if a character was deleted, you must reassign it after loading.
+
+After a real episode has completed, click **Retry this line** on a dialogue row to synthesize only that one edited line. Mina creates a **new** episode job, copies unchanged WAV clips bit-for-bit, rebuilds `episode.wav`, `dialogue.srt`, `manifest.json` and the ZIP, and keeps the original episode untouched. Only the selected line's text and delivery are updated; other edits in the screen are NOT applied. Source audio/character model checkpoints still must be present. This is not automatic best-take selection.
+
+Mixed-engine 16/24/48k PCM16 clips now resample with [Python-SoXR](https://github.com/dofuuz/python-soxr) / libsoxr **HQ** instead of deprecated `audioop` using checked NumPy arrays; this covers Python 3.11–3.12 and avoids the removed Python 3.13 module. **Licensing:** Python-SoXR and its bundled libsoxr are **LGPL-2.1-or-later**; Mina consumes this separately installed open-source dependency through its Python API. Upstream licensing obligations still apply; it is not being relicensed MIT.
+
 ## Quick start — Windows, macOS, Linux
 
 Requires Python 3.11 or 3.12 and Git. The basic app **starts without a GPU** but cannot synthesize speech without separate model environments and downloaded weights.

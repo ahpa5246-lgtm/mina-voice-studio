@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Form, HTTPException
+from fastapi import APIRouter, Body, Form, HTTPException
 from fastapi.responses import FileResponse
-from studio import cast, engines, qwen_runtime
+from studio import cast, engines, qwen_runtime, projects
 
 router = APIRouter(prefix="/api/cast", tags=["cartoon-studio"])
 
@@ -170,3 +170,109 @@ def evaluate_episode_voices(job_id: str):
         raise HTTPException(503,"Evaluation queue unavailable") from exc
     return {"id":report_job,"status":"queued",
             "note":"Cosine similarity is a proxy; no verified identity threshold."}
+
+
+# Persist scripts independently of temporary generated audio jobs.
+@router.get("/projects")
+def saved_projects():
+    return {"projects": projects.list_projects(_server().DATA),
+            "limit": projects.MAX_PROJECTS}
+
+
+@router.post("/projects", status_code=201)
+def new_project(payload: dict = Body(...)):
+    host = _server()
+    try:
+        with host.job_lock:
+            draft = projects.save_project(
+                host.DATA, title=payload.get("title", ""),
+                lines=payload.get("lines", []))
+    except projects.ProjectConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"project": draft}
+
+
+@router.get("/projects/{project_id}")
+def load_project(project_id: str):
+    try:
+        return {"project": projects.get_project(_server().DATA, project_id)}
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@router.put("/projects/{project_id}")
+def update_project(project_id: str, payload: dict = Body(...)):
+    host = _server()
+    try:
+        with host.job_lock:
+            draft = projects.save_project(
+                host.DATA, identifier=project_id, title=payload.get("title", ""),
+                lines=payload.get("lines", []),
+                expected_version=payload.get("expected_version"))
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except projects.ProjectConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {"project": draft}
+
+
+@router.delete("/projects/{project_id}")
+def remove_project(project_id: str):
+    host = _server()
+    try:
+        with host.job_lock:
+            projects.delete_project(host.DATA, project_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {"deleted": True}
+
+
+@router.post("/episodes/{job_id}/retry/{line_number}", status_code=202)
+def retry_episode_line(job_id: str, line_number: int, text: str = Form(...),
+                       delivery: str = Form("neutral"), consent: bool = Form(False)):
+    if not consent:
+        raise HTTPException(422, "Confirm permission to synthesize this character.")
+    # _artifact enforces completed local cartoon episodes; never inspect arbitrary paths.
+    _artifact(job_id, "episode.zip")
+    if not 1 <= line_number <= cast.MAX_LINES:
+        raise HTTPException(422, "Line number must be between 1 and 48.")
+    if delivery not in cast.DELIVERY or not 1 <= len(text.strip()) <= cast.MAX_LINE_CHARS:
+        raise HTTPException(422, "Invalid line text or performance direction.")
+    host = _server()
+    source = host.DATA / job_id
+    try:
+        original = json.loads((source / "script.json").read_text(encoding="utf-8"))
+        profile = original[line_number - 1]["character"]
+    except (OSError, IndexError, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(422, "Source episode does not have a valid script snapshot.") from exc
+    if profile["model"].startswith("qwen-"):
+        if not qwen_runtime.configured():
+            raise HTTPException(503, "Qwen engine is not available.")
+    elif not any(e["id"] == "chatterbox" and e["configured"] for e in engines.status()):
+        raise HTTPException(503, "Chatterbox engine is not available.")
+    if profile["voice_id"]:
+        _reference(profile["voice_id"])
+    task_id, directory = host._new_job("cartoon-episode")
+    def process():
+        host._record(task_id, status="running", current_line=line_number, total_lines=len(original))
+        try:
+            result = cast.revise_episode(source, directory, line_number, text, delivery, _reference)
+            host._validate_output(directory / "output.wav")
+        except Exception as exc:
+            host._record(task_id, status="failed", error=str(exc)[:800])
+        else:
+            host._record(task_id, status="completed", episode=result,
+                         revised_from=job_id, revised_line=line_number,
+                         download=f"/api/jobs/{task_id}/audio",
+                         archive=f"/api/cast/episodes/{task_id}/archive",
+                         captions=f"/api/cast/episodes/{task_id}/captions")
+    try:
+        host.pool.submit(process)
+    except RuntimeError as exc:
+        host._discard_job(task_id)
+        raise HTTPException(503, "Audio queue is unavailable.") from exc
+    return {"id": task_id, "status": "queued", "revised_line": line_number}
