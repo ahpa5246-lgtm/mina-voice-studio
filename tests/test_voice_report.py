@@ -87,7 +87,8 @@ def test_speaker_report_requires_actual_embedding_model(tmp_path,monkeypatch):
 
 
 def test_speaker_report_ui_is_wired():
-    html=Path("studio/static/index.html").read_text(encoding="utf-8")
-    js=Path("studio/static/cast.js").read_text(encoding="utf-8")
+    root=Path(__file__).resolve().parents[1]
+    html=(root/"studio/static/index.html").read_text(encoding="utf-8")
+    js=(root/"studio/static/cast.js").read_text(encoding="utf-8")
     assert 'id="checkSpeaker"' in html and 'id="speakerReport"' in html
     assert "/speaker-report" in js
