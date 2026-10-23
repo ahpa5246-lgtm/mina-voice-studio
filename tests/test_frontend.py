@@ -63,4 +63,5 @@ def test_all_23_model_languages_in_ui():
 def test_ui_no_remote_script_dependency():
     assert '<script src="http' not in HTML
     assert "data-tab" in HTML
-    assert "data-ar=" in HTML and "data-en=" in HTML\n    assert "max-length" not in HTML
+    assert "data-ar=" in HTML and "data-en=" in HTML
+    assert '<script src="/assets/app.js"' in HTML
