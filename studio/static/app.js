@@ -23,6 +23,7 @@ function renderEngines(){
   const info=document.createElement("p");
   info.textContent=e.operation==="speech"?(locale==="ar"?"توليد الكلام متعدد اللغات وعينة صوتية اختيارية.":"Multilingual speech generation with voice reference.") :
    e.operation==="conversion"?(locale==="ar"?"تحويل صوت باستخدام نماذج RVC المثبتة: ":"RVC conversion with installed models: ")+(e.model_count||0):
+   e.operation==="provider"?(locale==="ar"?"ربط API محلي؛ تأكدي من تشغيل المحرك وإنتاج الصوت.":"Local API connector; an audio smoke test is still needed.") :
    (locale==="ar"?"ضمن خطة الدمج، ولا يعمل حاليًا.":"Planned adapter; not functional yet.");
   const badge=document.createElement("span");badge.className="tag"+(e.configured?" ok":"");badge.textContent=e.operation==="planned"?t("planned"):e.configured?t("ready"):t("missing");
   card.append(title,info,badge);container.append(card);

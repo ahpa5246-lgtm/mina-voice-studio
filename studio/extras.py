@@ -13,7 +13,7 @@ import tempfile
 from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from studio import audio_tools, engines, providers, training
 from studio.text import normalize_text, MAX_DOCUMENT_CHARS
@@ -338,3 +338,27 @@ def training_log(job_id: str):
     if not path.is_file():
         raise HTTPException(404, "Training log not yet available")
     return FileResponse(path, media_type="text/plain", filename="applio-training.log")
+
+@router.get("/transcriptions/{job_id}/{format}")
+def download_subtitles(job_id: str, format: str):
+    """Export actual Whisper segments as UTF-8 captions, no fake timestamps."""
+    from studio.subtitles import subtitle_text
+    from studio import app as server
+    if format not in {"srt","vtt"}:
+        raise HTTPException(404,"Supported formats: srt, vtt")
+    with server.job_lock:
+        job = server.jobs.get(job_id)
+        if not job or job.get("engine") != "transcribe" or job.get("status") != "completed":
+            raise HTTPException(404,"Completed transcription not found")
+        result = job.get("transcript")
+        if not isinstance(result,dict):
+            raise HTTPException(404,"No transcript for this job")
+    try:
+        output = subtitle_text(result.get("segments",[]),format)
+    except (ValueError,TypeError,KeyError) as exc:
+        raise HTTPException(422,"Transcription has invalid timestamps") from exc
+    return Response(
+        output,media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition":f'attachment; filename="mina-transcript-{job_id[:8]}.{format}"',
+                 "Cache-Control":"no-store"},
+    )

@@ -77,3 +77,17 @@ python -m pytest -q
 ## تحضير تسجيلات التدريب
 
 بعد جمع تسجيلات تملكين حق استخدامها، خزّنيها خارج GitHub وراجعي `docs/EVALUATION.md`، ثم شغّلي `scripts/dataset_audit.py`. هذا يفحص صلاحية البيانات الأولية فقط؛ لم يُدرب نموذج جديد.
+
+## Chatterbox V3 + Turbo + Nano
+
+Install the original Chatterbox library into an **isolated** Python 3.11 environment. Example on Windows:
+
+```powershell
+py -3.11 -m venv .venv-chatterbox
+.\.venv-chatterbox\Scripts\python.exe -m pip install chatterbox-tts
+$env:CHATTERBOX_PYTHON = (Resolve-Path '.venv-chatterbox\Scripts\python.exe').Path
+```
+
+Restart Mina from the same terminal. Select **Multilingual V3** for Arabic and the supported 23-language list. **Turbo** and **Nano** are English-only in their upstream model releases and require an audio reference. The first job loads upstream model weights; later jobs can reuse one warm model in a private subprocess without reloading. Switching models releases the previous model's cache; the Engines screen has a **Unload model** action to free GPU memory.
+
+The automatic subtitles export uses real Faster-Whisper segments: after a successful transcription, click **SRT** or **VTT**. It does not translate, align lips, or generate a voice automatically. For actual generation-quality checks on the RTX GPU, run `scripts/smoke_audio.py` for each model and measure audio content and real-time factor.

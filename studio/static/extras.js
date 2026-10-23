@@ -21,12 +21,18 @@ async function watchJob(id, statusNode, audioNode, linkNode, textNode){
     if(result.status==="completed"){
       statusNode.textContent=text("انتهت المعالجة بنجاح","Completed successfully");
       if(result.training) statusNode.textContent += " — "+result.training.model_name+" ("+result.training.checkpoint_count+" checkpoints)";
-      if(result.training) statusNode.textContent += " — "+result.training.model_name+" ("+result.training.checkpoint_count+" checkpoints)";
       if(result.download&&audioNode&&linkNode){
         audioNode.src=result.download;audioNode.hidden=false;
         linkNode.href=result.download;linkNode.hidden=false;
       }
-      if(result.transcript&&textNode) textNode.value=result.transcript.text || "";
+      if(result.transcript&&textNode){
+        textNode.value=result.transcript.text || "";
+        for(const kind of ["srt","vtt"]){
+          const link=$("#subtitle"+(kind==="srt"?"Srt":"Vtt"));
+          link.href="/api/transcriptions/"+encodeURIComponent(id)+"/"+kind;
+          link.hidden=false;
+        }
+      }
       return result;
     }
     statusNode.textContent=result.status==="running"?text("تتم المعالجة الآن...","Processing..."):text("في قائمة الانتظار","Queued...");
@@ -42,6 +48,7 @@ async function runJob(ev,path,prefix,transcription=false){
   const link=transcription ? null : $("#"+prefix+"Download");
   setBusy(form,true);
   status.textContent=text("جاري الإرسال...","Uploading...");
+  if(transcription){$("#subtitleSrt").hidden=true;$("#subtitleVtt").hidden=true;}
   if(audio)audio.hidden=true;
   if(link)link.hidden=true;
   try{
