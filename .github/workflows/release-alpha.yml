@@ -1,0 +1,50 @@
+name: Publish verified alpha release
+
+on:
+  workflow_run:
+    workflows: ["Python tests"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: >-
+      github.repository == 'ahpa5246-lgtm/mina-voice-studio' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact tested main commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Publish v0.1.0-alpha once after CI succeeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='v0.1.0-alpha'
+          current=$(gh api "repos/${GH_REPO}/commits/main" --jq '.sha')
+          if [[ "$current" != "$TESTED_SHA" ]]; then
+            echo 'Skipping stale successful run: tested SHA is not current main.'
+            exit 0
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo 'Alpha release already exists; no overwrite.'
+            exit 0
+          fi
+          if git ls-remote --tags "https://github.com/${GH_REPO}.git" "refs/tags/${tag}" | grep -q .; then
+            echo 'Tag already exists without a GitHub release. Refusing to repoint it.'
+            exit 1
+          fi
+          gh release create "$tag" --target "$TESTED_SHA" --prerelease \
+            --title 'Mina Voice Studio v0.1.0-alpha' \
+            --notes-file 'docs/releases/v0.1.0-alpha.md'
+          gh release view "$tag" --json url,tagName,isPrerelease

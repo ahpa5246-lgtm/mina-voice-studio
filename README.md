@@ -1,135 +1,101 @@
 # Mina Voice Studio
 
-An Arabic-first, local-first open-source voice workstation. This is a development build, **not a validated replacement for ElevenLabs**. Model weights, training data, and other upstream software are installed separately.
+**Open-source AI voice acting studio for animation and cartoons.**
 
-## Tools and actual implementation status
+Create character voices, write multi-speaker dialogue, render line-by-line WAV audio, and export your cartoon's voice track and timed subtitles. **Local-first · Arabic/English interface · MIT-licensed application code.**
 
-| Workspace | Actual implementation | Dependencies / limitations |
+[![Python tests](https://github.com/ahpa5246-lgtm/mina-voice-studio/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/ahpa5246-lgtm/mina-voice-studio/actions/workflows/tests.yml)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/ahpa5246-lgtm/mina-voice-studio/releases)
+[![Python 3.11–3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-informational.svg)](https://www.python.org/)
+
+> **Alpha / developer preview:** The UI and deterministic audio/HTTP flows have automated tests; **neural model output quality has not been benchmarked on GPU**. Speech engines and checkpoints are **not included**. This is not an ElevenLabs replacement claim. The local app is **not safe to expose as a public multi-user service**.
+
+**[Quick start](#quick-start--windows-macos-linux) · [Features](#what-can-it-do) · [Cartoon workflow](#make-a-short-cartoon-scene) · [Arabic guide](docs/INSTALL_AR.md) · [Contribute](CONTRIBUTING.md) · [Issues](https://github.com/ahpa5246-lgtm/mina-voice-studio/issues) · [Releases](https://github.com/ahpa5246-lgtm/mina-voice-studio/releases)**
+
+## In 30 seconds
+
+Mina manages the *audio-production side* of animation. You choose character voices and deliver dialogue; the app invokes the installed upstream synthesizer, then prepares editable dialogue clips, a merged track, and subtitles. **It is not a video editor, lip-sync generator, or hosted GPU demo.**
+
+```text
+Script + characters + licensed voice references
+  ↓
+VoiceDesign (Qwen, English) / Chatterbox (including Arabic)
+  ↓
+Cartoon Cast → generated line WAVs → episode WAV + SRT + manifest
+  ↓
+Download ZIP → edit and animate in your preferred video editor
+```
+
+### What can it do?
+
+| Workspace | Implemented behavior | Readiness |
 | --- | --- | --- |
-| Multilingual TTS & voice cloning | Chatterbox V3 speech worker, long-text chunking, optional voice reference | Separate runtime; no GPU quality benchmark |
-| Voice conversion | Runs upstream Applio RVC with pitch shift, indexing, RMVPE/FCPE/CREPE, Autotune, and native Light/Speech cleanup | Installed model and separately installed Applio environment |
-| Applio batch conversion | Converts 2–8 audio files via upstream batch inference, validates WAV outputs and downloads a ZIP | Installed Applio models and runtime |
-| Applio model blender | Merges two compatible RVC checkpoints using Applio's own blender, refusing overwrites | Models with compatible architectures |
-| Voice library | Save, list, preview, delete consented voice references | Stored locally in data/_voices |
-| Cartoon cast studio | Persist character profiles and render a multi-speaker dialogue as episode WAV + per-line WAVs + SRT + ZIP | Uses existing installed Chatterbox and authorized voice references; 128 profiles / 48 lines per job |
-| Audio enhancement | High-pass, peak normalization and optional gate on real PCM-16 samples | Conventional DSP, not neural denoising |
-| Audio analysis | Clipping, silence, RMS, peak and duration | PCM-16 WAV only |
-| Music/vocals separation | Run original Meta Demucs htdemucs two-stem CLI and export two verified WAV files in ZIP | Independent Demucs venv; weights/FFmpeg required |
-| Speech transcription | Faster-Whisper worker for Arabic or English | Whisper installed separately and its weights downloaded |
-| Script dubbing | Produce narration from your manually translated script | Chatterbox installed; no auto translation or lip-sync |
-| TTS-WebUI API | Local OpenAI-compatible speech API connector | Needs separate API extension, model and voice selection |
-| GPT-SoVITS API | Calls local /tts with voice recording and prompt transcript | Server can access reference path; Arabic not enabled in this adapter |
-| Voice training | Audits consented local data, then launches Applio preprocess / extract / train and verifies checkpoint files | GPU and licensed dataset required; only command orchestration tested |
-| Microphone capture | Records a five-second PCM WAV to feed clip conversion | Browser microphone; **not live GPU conversion** |
-| Streaming voice changer | Not yet implemented | Persistent realtime transport/benchmark required |
+| **Character casting** | Up to 128 profiles; voice references, per-line speakers, script timing, exported WAV/SRT/ZIP | App/API tested; audio models external |
+| **Voice design** | Qwen3 VoiceDesign 1.7B: new synthetic speaker reference from descriptive text | Optional checkpoint; official model excludes Arabic |
+| **Consistent characters** | Qwen3 Base voice clone reuses a generated or consented seed/transcript | Requires real-model listening test |
+| **Acting directions** | Qwen3 CustomVoice preset voices accept sarcasm/anger/sadness/crying instructions | Per-line controls apply to *preset* voices, **not Qwen Base clone** |
+| **Multilingual speech** | Chatterbox Multilingual V3 (includes Arabic); Turbo and Nano for English | Separate Chatterbox installation |
+| **Voice conversion / training** | Original Applio/RVC single + batch conversion, model blending, training orchestrator | Separate Applio install, models, licensed recordings |
+| **Voice library** | Save, preview and reuse local authorized reference clips | Local/consent gated |
+| **Transcription & subtitles** | Faster-Whisper; real-timestamp SRT and WebVTT exports | Whisper checkpoint installed separately |
+| **Audio cleanup / diagnostics** | High-pass filtering, normalization, gate, clipping/peak/silence measurements | Deterministic PCM16 signal-processing tests |
+| **Stem splitting** | Demucs real vocal/instrumental CLI adapter + verified WAV ZIP | Separate Demucs install/weights |
+| **Manual voiceover** | Generate voiceover for a supplied translation | Not auto-translation or automatic dubbing |
+| **Other providers** | Optional local TTS-WebUI and GPT-SoVITS HTTP adapters | Requires their locally running APIs |
+| **Speaker stability report** | Optional Resemblyzer within/between-character cosine comparisons | Approximate; never an objective voice-quality pass |
+| **Kaggle benchmark** | Notebook to design two English synthetic voices, clone lines, and inspect similarity | **Notebook supplied; not run on Kaggle by maintainers** |
 
-## Installation
+**Not implemented:** low-latency live voice changing, automatic lip-sync, multitrack video timeline, an online unrestricted GPU demo, accounts or production multi-user authentication.
 
-Python 3.11/3.12 is recommended. Create a virtual environment, install requirements.txt and launch the loopback server:
+## Quick start — Windows, macOS, Linux
 
-    git clone https://github.com/ahpa5246-lgtm/mina-voice-studio.git
-    cd mina-voice-studio
-    python -m venv .venv
-    # Activate .venv for your OS
-    python -m pip install -r requirements.txt
-    python -m uvicorn studio.app:app --host 127.0.0.1 --port 7860
+Requires Python 3.11 or 3.12 and Git. The basic app **starts without a GPU** but cannot synthesize speech without separate model environments and downloaded weights.
 
-Open http://127.0.0.1:7860. The interface starts without large models, but the relevant model workflows return clear errors until separately configured.
-
-### Detailed documentation
-
-- [Arabic setup and new tool guide](docs/EXTRA_TOOLS_AR.md)
-- [Core setup instructions](docs/INSTALL_AR.md)
-- [Architecture and limitations](docs/ARCHITECTURE.md)
-- [Model training and acoustic evaluation protocol](docs/EVALUATION.md)
-
-## Regression and browser tests
-
-    python -m pip install -r requirements-dev.txt
-    python -m pytest -q
-
-CI runs **1,000 distinct deterministic PCM-16 WAV processing cases** plus API, permission and failure-path tests on Python 3.11 and 3.12. A separate headless Chromium job drives the real website and local server to test uploads, voice library operations and audio processing.
-
-These are application and signal-processing tests, **not 1,000 model-inference runs**. The CI jobs do not download or fine-tune Chatterbox, Whisper, GPT-SoVITS or Applio models. For actual on-device model benchmarking, use scripts/smoke_audio.py and docs/EVALUATION.md.
-
-## Privacy and licensing
-
-- The server is restricted to loopback by default and is not safe to publish as a multi-user SaaS without authentication and additional abuse protection.
-- Uploaded job recordings expire after 24 hours when a new job is admitted; saved voice references remain until you delete them.
-- Only upload, convert or train on speakers whose permission you have.
-- This repository's original code is MIT-licensed; installed upstream model licenses and terms still apply.
-- Projects: [Chatterbox](https://github.com/resemble-ai/chatterbox), [Applio](https://github.com/IAHispano/Applio), [TTS-WebUI](https://github.com/rsxdalv/TTS-WebUI), [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS), [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper).
-
-### Upstream Applio compatibility
-
-This integration **calls the original Applio code** from a separate installation via `scripts/applio_native_worker.py` and does not redistribute upstream GPU weights. It uses Applio's native `core.run_infer_script`, `core.run_batch_infer_script`, and `core.run_model_blender_script`. On-demand Light cleanup can require FFmpeg; Speech cleanup may download DeepFilterNet components on the user machine. DeepFilterNet is not the same as music/vocal source separation. Live voice streaming and vocal/instrument splitting are **not integrated** into Mina yet. Until tested against real RVC weights, call status configured, not audio-verified.
-
-## Upstream-derived engine integration (Oct 2026)
-
-Mina invokes independently installed **MIT-licensed** upstream model runtimes rather than copying their entire incompatible Python environments. The Chatterbox adapter now accepts Multilingual V3 (23 languages), Turbo (English) and Nano (English) through the original Resemble AI API; Turbo/Nano require an authorized reference clip. A local-only **stdio process** caches exactly one Chatterbox model at a time and is explicitly releasable from the Engines screen. No TCP inference daemon or third-party model weights are distributed.
-
-Faster-Whisper transcription results can be exported as SRT or WebVTT using the actual recognized segment timestamps. This is subtitle *export*, **not** automatic dubbing/lip synchronization. GPT-SoVITS and TTS-WebUI local API adapters are available in the additional providers screen, but do not count as verified until real audio has been produced.
-
-To run the real hardware tests on a configured machine:
-
-```powershell
-python scripts/smoke_audio.py --operation speech --chatterbox-model multilingual-v3 --language ar --text "مرحبا بك" --output data/ar.wav
-python scripts/smoke_audio.py --operation speech --chatterbox-model turbo --language en --reference C:\path\to\authorized-voice.wav --text "Welcome!" --output data/turbo.wav
-```
-
-CI covers the private stdio protocol, security gates, actual WAV signal processing, subtitle timestamps and browser wiring. **CI does not download model weights or establish acoustic fidelity.** Compare naturalness and accent only after listening to real generated recordings. See [upstream integration notes](docs/UPSTREAM_INTEGRATION.md).
-
-## Demucs source separation
-
-The **Vocal separation** workspace invokes the original [MIT-licensed Meta Demucs](https://github.com/facebookresearch/demucs) command in a dedicated Python environment. The optional upstream repository is archived, so future compatibility is not guaranteed. Install it yourself before using this feature. The app validates both `vocals.wav` and `instrumental.wav` rather than inventing separated audio, and fails transparently without model weights or an installed runtime. No pretrained model files are included.
-
-```powershell
-py -3.11 -m venv .venv-demucs
-.\.venv-demucs\Scripts\python.exe -m pip install demucs
-$env:DEMUCS_PYTHON = (Resolve-Path '.venv-demucs\Scripts\python.exe').Path
-```
-
-You will also need the multimedia decoder dependencies supported by Demucs, normally FFmpeg. Model weights can download on first use. This is an isolated heavy audio job, not a streaming/live separation feature.
-
-## Cartoon Voice Cast Studio — real dialogue renders
-
-The **Cartoon Cast** tab lets you create persistent character voice profiles, link existing consented recordings from the **Voice Library**, set a Chatterbox model/language and expressiveness/guidance values, enter multi-speaker dialogue lines, and select approximate delivery directions. It renders each line using the genuine installed model, concatenates PCM16 WAV clips, and exports: `episode.wav`, `dialogue.srt`, `manifest.json`, and one individual WAV file per line, wrapped in a ZIP. Failed lines fail the entire job.
-
-Distinct names do **not** create distinct vocal timbres. Different authorized reference samples (or suitable separately trained RVC models used in a later conversion step) are required for distinguishable speaker identities. No text-prompt speaker design akin to ElevenLabs Voice Design is implemented. No guarantee of Iraqi-accent accuracy, animated emotion, lip sync or actor-quality performance.
-
-**Current local capacity:** 128 saved voice recordings, 128 character profiles, up to 48 dialogue lines and 6,000 total characters per episode job. These are explicit software limits, not an unlimited voice-generation claim. Voice reference audio and character profiles persist until deleted; generated episode jobs are temporary and cleared through normal local retention.
-
-To test Chatterbox with actual authorized voice files, install the separate Chatterbox environment as in the [Arabic setup guide](docs/INSTALL_AR.md) and run `scripts/smoke_audio.py`. No GPU acoustic-quality claim is made by the HTTP/browser test suite.
-
-## Qwen3 Voice Design, reusable cartoon identities and acting controls
-
-Mina now integrates the real **Apache-2.0 [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)** via a separate Python process. Its **VoiceDesign 1.7B** can synthesize an entirely new voice seed from a written English description (no speaker recording). The seed audio and exact spoken transcript are stored in Mina's reference library. Assign the seed to a recurring **Qwen Clone** character in Cartoon Cast: **Base 1.7B** reuses the same reference audio/transcript and a cached clone prompt across dialogue lines. This is the technically correct route to keeping an invented character timbre consistent.
-
-Per-line acting direction ("sarcastic", "angry", "sad", "crying", etc.) is wired through **Qwen CustomVoice 1.7B**, using its nine preset speakers and official `instruct` argument. **The Base clone checkpoint does not support per-line acting instructions**. Its generated speech remains governed by the seed and text. Character differentiation/expressiveness are not guaranteed.
-
-Official Qwen3 12Hz voice models support ten languages: English, Chinese, Japanese, Korean, German, French, Russian, Portuguese, Spanish and Italian. **No Arabic**; use Chatterbox Multilingual V3 for Arabic cartoons. No 0.6B VoiceDesign is claimed.
-
-### Installation (local Windows or Kaggle GPU)
-
-Qwen is optional, and must **not** be installed into the existing Chatterbox/Applio environment:
-
-```powershell
-py -3.12 -m venv .venv-qwen
-.\.venv-qwen\Scripts\python.exe -m pip install qwen-tts soundfile
-$env:QWEN_PYTHON = (Resolve-Path '.venv-qwen\Scripts\python.exe').Path
+```bash
+git clone https://github.com/ahpa5246-lgtm/mina-voice-studio.git
+cd mina-voice-studio
+python -m venv .venv
+# Linux / macOS:
+source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 python -m uvicorn studio.app:app --host 127.0.0.1 --port 7860
 ```
 
-First inference downloads public model weights (multiple GB) unless already cached. Check model cards and available VRAM; the process caches one active Qwen checkpoint, releasing it when switching model families. This avoids loading design, clone and CustomVoice weights together, but still does **not** prove GPU compatibility on your PC.
+Open **http://127.0.0.1:7860**.
 
-### Run the first GPU benchmark on Kaggle
+Windows PowerShell alternative: run `.\start.ps1` in the repository root (requires Python 3.11). Linux/macOS: `bash start.sh`. Use [Arabic engine-by-engine setup](docs/INSTALL_AR.md) to enable actual voice generation. Each AI engine has an intentionally separate Python environment to avoid dependency conflicts.
 
-Import the versioned notebook [kaggle/cartoon_voices_qwen3.ipynb](kaggle/cartoon_voices_qwen3.ipynb) into Kaggle Notebooks, enable an available GPU, and enable internet if permitted for downloading public weights. Execute all cells. It builds two **entirely synthetic voices**, generates three repeated lines from each with Base clone, generates three acted lines with CustomVoice, and compares within-speaker versus between-speaker Resemblyzer embedding cosine similarity. It exports **actual** WAV files and metrics JSON. These operations were **not executed** in GitHub CI or this environment. The notebook is a reproducible experiment, not completed training or proof of commercial parity.
+### Make a short cartoon scene
 
-For real episodes created inside Mina, optionally install `resemblyzer` and run `python scripts/voice_consistency.py path/to/episode.zip`. Embedding similarity is a proxy; use a blinded listening test across multiple voices/scenes and evaluate naturalness, drift, failures, GPU memory and real-time factor. Do not claim ElevenLabs parity based on similarity numbers alone.
+1. **Choose characters.** Start with **Cartoon Cast**. For an English synthetic character, use Qwen VoiceDesign to render a new seed; save its WAV and exact transcript. For Arabic, choose Chatterbox with an authorized reference.
+2. **Save the cast.** Link the reference voice to each character. Select **Qwen Clone** to keep an invented English timbre or **Qwen CustomVoice** for preset-speaker acting instructions.
+3. **Write the dialogue.** Assign a speaker, text, approximate delivery and pause to each line. One render handles **up to 48 lines / 6,000 characters**.
+4. **Render and listen.** After successful upstream inference, export `episode.wav`, each `lines/line-XXX.wav`, `dialogue.srt` and `manifest.json` in a ZIP. Use the optional speaker similarity report, but validate by listening.
+5. **Animate.** Arrange the individual WAV files, visuals, sound effects and music in your video editor. Mina does not yet render animation or perform lip-sync.
 
-See the [Arabic Qwen + Kaggle guide](docs/QWEN_KAGGLE_AR.md).
+## First GPU evaluation: Kaggle
 
-### Optional in-app episode voice-consistency report
+Open [the Qwen3 cartoon-voices notebook](kaggle/cartoon_voices_qwen3.ipynb) and follow the [Arabic Kaggle instructions](docs/QWEN_KAGGLE_AR.md). Enable a Kaggle GPU and network access if available. It tests **English** voice design, multi-line clone reuse, acted preset voices and embedding similarity. Kaggle quotas and downloads vary. **No GPU benchmark results are represented as completed.**
 
-After an actual episode has finished rendering, the Cartoon Cast page displays **Measure character voice consistency**. Install `resemblyzer` in Mina's own **web-server** Python environment to enable it. The report compares GE2E speaker embeddings from real generated lines, counts within/between-character pairs and exposes mean cosine and minimum pair similarity, with **no pass/fail threshold**. Short recordings or incompatible audio correctly fail rather than producing fake values. Model weights will be downloaded on first use when the optional package supports it. No score is presented as proof of voice authenticity, especially for highly stylized characters or Arabic.
+## Testing and project transparency
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+GitHub Actions runs Python 3.11, Python 3.12 and headless Chromium. It tests actual app routing, file processing and controlled upstream-engine adapters, but **mocks neural audio inference**, so it does **not** prove convincing character acting, voice similarity, Iraqi accent or model VRAM performance.
+
+- [Architecture](docs/ARCHITECTURE.md) · [Voice quality evaluation](docs/EVALUATION.md)
+- [Qwen/Kaggle instructions (Arabic)](docs/QWEN_KAGGLE_AR.md) · [Applio attribution](docs/APPLIO_ATTRIBUTION.md) · [Upstream adapters](docs/UPSTREAM_INTEGRATION.md)
+- [Release notes](docs/releases/v0.1.0-alpha.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
+
+## Contributing and community
+
+Bug reports, reproducible model-compatibility findings, accessibility improvements, tests, audio-editor contributions and clear documentation are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) or open a [bug report / feature request](https://github.com/ahpa5246-lgtm/mina-voice-studio/issues/new/choose). Please do not upload private recordings, unlicensed model weights, API tokens or biometric speaker data into public issues.
+
+**Licensing:** Mina's code is [MIT](LICENSE). It integrates, but does not redistribute, separately licensed upstream code/models: [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS), [Chatterbox](https://github.com/resemble-ai/chatterbox), [Applio](https://github.com/IAHispano/Applio), [Demucs](https://github.com/facebookresearch/demucs), [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper). Check each checkpoint's terms and obtain speaker consent before cloning or converting any voice.
+
+*Built to help independent animators tell stories with reproducible, locally controlled voice tools.*
