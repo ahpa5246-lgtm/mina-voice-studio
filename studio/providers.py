@@ -32,8 +32,6 @@ def local_base_url(variable: str) -> str | None:
             return None
     except ValueError:
         return None
-    if False:
-        return None
     return raw
 
 

@@ -35,7 +35,7 @@ def test_interface_has_real_workflows_and_no_duplicate_ids():
     parser = AuditParser()
     parser.feed(HTML)
     assert parser.dir == "rtl"
-    assert set(parser.forms) == {"speechForm", "convertForm"}
+    assert set(parser.forms) == {"speechForm", "convertForm", "voiceForm", "enhanceForm", "qualityForm", "transcribeForm", "dubForm", "providerForm"}
     assert len(parser.ids) == len(set(parser.ids))
 
 
@@ -63,5 +63,6 @@ def test_all_23_model_languages_in_ui():
 def test_ui_no_remote_script_dependency():
     assert '<script src="http' not in HTML
     assert "data-tab" in HTML
+    assert '<script src="/assets/extras.js"' in HTML
     assert "data-ar=" in HTML and "data-en=" in HTML
     assert '<script src="/assets/app.js"' in HTML
