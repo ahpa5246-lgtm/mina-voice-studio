@@ -1,12 +1,13 @@
 name: Upload Qwen voice benchmark to Kaggle
 
 on:
-  # Run once when this workflow is merged with the exact activation commit
-  # below; normal dispatch stays available afterward. No scheduled GPU use.
+  # One-time user-authorized run/retry only for explicit release commit title.
+  # Ordinary notebook/docs pushes never start GPU. No scheduled GPU use.
   push:
     branches: [main]
     paths:
       - .github/workflows/kaggle-voice-benchmark.yml
+      - kaggle/cartoon_voices_qwen3.ipynb
   workflow_dispatch:
     inputs:
       kaggle_username:
@@ -25,7 +26,7 @@ permissions:
 jobs:
   kaggle:
     if: >-
-      ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'ci: launch first private Kaggle voice benchmark') }}
+      ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'ci: launch first private Kaggle voice benchmark') || startsWith(github.event.head_commit.message, 'ci: rerun Kaggle ASR fix after real voice generation') }}
     runs-on: ubuntu-latest
     env:
       KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN || secrets.KAGGLE }}
