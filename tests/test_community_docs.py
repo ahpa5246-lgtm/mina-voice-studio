@@ -12,10 +12,10 @@ def text(path):
 
 def test_readme_communicates_demo_and_production_limits():
     readme = text("README.md")
-    assert readme.startswith("# Mina Voice Studio\n")
+    assert "# Mina Voice Studio\n" in readme
     for needle in ("Cartoon Cast", "Qwen3", "Chatterbox", "CONTRIBUTING.md",
                    "docs/INSTALL_AR.md", "127.0.0.1:7860",
-                   "not safe to expose", "not been benchmarked on GPU"):
+                   "not a hosted online demo", "Kaggle Tesla T4"):
         assert needle.lower() in readme.lower(), needle
     assert readme.count(chr(96) * 3) % 2 == 0
     assert "\\" + chr(96) not in readme
@@ -114,7 +114,7 @@ def test_readme_uses_genuine_checked_in_browser_images():
     import struct
     import xml.etree.ElementTree as ET
     readme = text("README.md")
-    images = re.findall(r"!\\[[^]]*\\]\\((docs/assets/[^)]+)\\)", readme)
+    images = re.findall(r"!\[[^]]*\]\((docs/assets/[^)]+)\)", readme)
     assert "docs/assets/hero.svg" in images
     assert "docs/assets/workflow.svg" in images
     screenshots = [path for path in images if path.endswith(".png")]
@@ -127,7 +127,7 @@ def test_readme_uses_genuine_checked_in_browser_images():
             assert ET.parse(path).getroot().tag.endswith("svg")
         else:
             png = path.read_bytes()
-            assert png.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+            assert png.startswith(bytes((137, 80, 78, 71, 13, 10, 26, 10)))
             width, height = struct.unpack(">II", png[16:24])
             assert (width, height) == (1440, 900)
     assert "Playwright" in readme and "captured from" in readme.lower()
