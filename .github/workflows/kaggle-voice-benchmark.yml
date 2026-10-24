@@ -1,6 +1,12 @@
 name: Upload Qwen voice benchmark to Kaggle
 
 on:
+  # Run once when this workflow is merged with the exact activation commit
+  # below; normal dispatch stays available afterward. No scheduled GPU use.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/kaggle-voice-benchmark.yml
   workflow_dispatch:
     inputs:
       kaggle_username:
@@ -18,11 +24,13 @@ permissions:
 
 jobs:
   kaggle:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'ci: launch first private Kaggle voice benchmark') }}
     runs-on: ubuntu-latest
     env:
       KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN || secrets.KAGGLE }}
-      KAGGLE_USERNAME_INPUT: ${{ inputs.kaggle_username }}
-      RUN_GPU_INPUT: ${{ inputs.run_gpu }}
+      KAGGLE_USERNAME_INPUT: ${{ github.event_name == 'push' && 'minahussain111' || inputs.kaggle_username }}
+      RUN_GPU_INPUT: ${{ github.event_name == 'push' && 'true' || inputs.run_gpu }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -74,3 +82,9 @@ jobs:
         run: |
           echo "Notebook: https://www.kaggle.com/code/${KAGGLE_USERNAME_INPUT}/mina-cartoon-voice-verification"
           echo 'Inspect Kaggle status/logs and real WAV outputs before claiming benchmarks passed.'
+      - name: Query Kaggle execution status (not a quality certificate)
+        shell: bash
+        run: |
+          set -euo pipefail
+          kaggle kernels status "${KAGGLE_USERNAME_INPUT}/mina-cartoon-voice-verification"
+          echo 'Submission accepted by Kaggle; GPU completion and acoustic quality are separate checks.'
