@@ -65,3 +65,17 @@ def test_kaggle_workflow_accepts_both_secret_names():
     assert "KAGGLE_API_TOKEN: " in workflow
     docs = text("docs/REAL_AUDIO_TEST_AR.md")
     assert "KAGGLE_API_TOKEN" in docs and "`KAGGLE`" in docs
+
+
+def test_one_time_kaggle_activation_yaml_is_parseable_and_guarded():
+    workflow = yaml.safe_load(text(".github/workflows/kaggle-voice-benchmark.yml"))
+    triggers = workflow.get("on", workflow.get(True))
+    assert "main" in triggers["push"]["branches"]
+    assert ".github/workflows/kaggle-voice-benchmark.yml" in triggers["push"]["paths"]
+    assert "workflow_dispatch" in triggers
+    guard = workflow["jobs"]["kaggle"]["if"]
+    assert "startsWith" in guard and "workflow_dispatch" in guard
+    assert "ci: launch first private Kaggle voice benchmark" in guard
+    env = workflow["jobs"]["kaggle"]["env"]
+    assert "minahussain111" in env["KAGGLE_USERNAME_INPUT"]
+    assert "'true'" in env["RUN_GPU_INPUT"]
