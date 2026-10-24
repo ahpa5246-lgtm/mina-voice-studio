@@ -2,6 +2,14 @@
 
 Thanks for helping build an open-source voice acting workstation **for animation**. Please keep claims measurable and changes reproducible.
 
+## Start here: choose a scoped issue
+
+Read the [community handbook](docs/community/00_START_HERE_AR.md), [product roadmap](docs/community/02_PRODUCT_ROADMAP_AR.md) and [task catalog](docs/community/03_CONTRIBUTOR_TASK_CATALOG_AR.md). The [eight ready-to-file issue drafts](docs/community/12_READY_TO_POST_ISSUES_AR_EN.md) give detailed examples of acceptance criteria. **Not all drafts are necessarily open Issues**; check the repository Issues tab before starting.
+
+For a first contribution: choose an open, well-specified issue with the standard **good first issue** label, comment with a short implementation plan, and wait for a maintainer to confirm scope. Fork and open a pull request; write access is not required. No one is required to star, upvote, subscribe or promote this project to contribute.
+
+The canonical project was founded by [Mina Hussein Salman](AUTHORS.md), and contributors receive fair credit. Read [GOVERNANCE](GOVERNANCE.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before proposing major architecture work.
+
 ## What contributions are useful?
 
 - Small, tested fixes in character casting, WAV/SRT exports, caption timing, browser accessibility or installer reliability.

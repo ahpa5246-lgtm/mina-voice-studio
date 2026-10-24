@@ -141,3 +141,41 @@ def test_readme_has_real_install_command_and_honest_upstream_limits():
                    "Chatterbox", "Applio", "Faster-Whisper", "SoXR",
                    "Local app", "MIT", "Kaggle Tesla T4"):
         assert needle.lower() in readme.lower(), needle
+
+
+def test_community_playbook_files_and_founder_review_are_present():
+    from pathlib import Path
+    root = ROOT / "docs" / "community"
+    for index in range(14):
+        matches = list(root.glob(f"{index:02d}_*.md"))
+        assert len(matches) == 1, f"Missing or duplicate community chapter {index}"
+        assert matches[0].stat().st_size > 900
+    index_file = text("docs/community/00_START_HERE_AR.md")
+    assert "12_READY_TO_POST_ISSUES_AR_EN.md" in index_file
+    assert "13_LAUNCH_FAQ_AND_CHECKLISTS_AR.md" in index_file
+    catalog = text("docs/community/03_CONTRIBUTOR_TASK_CATALOG_AR.md")
+    for n in range(1, 31):
+        assert f"## {n:02d}." in catalog
+    drafts = text("docs/community/12_READY_TO_POST_ISSUES_AR_EN.md")
+    assert drafts.count("**Acceptance criteria:**") == 8
+    assert "Mina Hussein Salman" in text("AUTHORS.md")
+    assert "Qwen3-TTS" in text("AUTHORS.md")
+    assert "MIT" in text("GOVERNANCE.md")
+    assert "@ahpa5246-lgtm" in text(".github/CODEOWNERS")
+    assert "good first issue" in text("CONTRIBUTING.md")
+    assert "docs/community/00_START_HERE_AR.md" in text("README.md")
+
+
+def test_public_docs_preserve_safety_and_correct_sources():
+    for path in (
+        "docs/community/05_COMMUNITY_DIRECTORY_AR.md",
+        "docs/community/06_CONTENT_AND_OUTREACH_KIT_AR_EN.md",
+        "docs/community/10_MAINTAINER_OPERATIONS_AR.md",
+        "docs/community/11_SOURCES_AND_POLICY_CHECKS.md",
+    ):
+        document = text(path)
+        assert "Hacker News" in document or "HN" in document
+        assert "Product Hunt" in document
+        assert "Kaggle" in document or "GPU" in document or path.endswith("11_SOURCES_AND_POLICY_CHECKS.md")
+    assert "CODEOWNERS" in text("docs/community/01_REPOSITORY_SETUP_AND_OWNERSHIP_AR.md")
+    assert "CODE_OF_CONDUCT" in text("README.md") or "CODE_OF_CONDUCT" in text("CONTRIBUTING.md")

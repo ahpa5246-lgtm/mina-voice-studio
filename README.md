@@ -105,6 +105,14 @@ Follow the environment-variable instructions printed by the installer, then use 
 - **Qwen3 was actually run on a Kaggle Tesla T4 GPU** for two English synthetic cartoon voices, six cloned lines and preset acting samples. A small-model ASR check reported **WER 1.85%** and **CER 1.48%** on those test lines. These are **small-sample automatic proxy metrics**, not a general speech-quality guarantee or human acting evaluation.
 - The [reproducible notebook](kaggle/cartoon_voices_qwen3.ipynb) and [evaluation guide](docs/EVALUATION.md) explain the experiment. Chatterbox/Applio inference still needs independent acoustic validation.
 
+## Community: help build Mina Voice Studio
+
+Mina Voice Studio was **originally conceived and initiated by Mina Hussein Salman ([@ahpa5246-lgtm](https://github.com/ahpa5246-lgtm))**. This is the canonical project repository; independent contributors receive full credit for their work and upstream open-source licenses are respected.
+
+**New contributors:** [Community handbook (Arabic)](docs/community/00_START_HERE_AR.md) · [Roadmap](docs/community/02_PRODUCT_ROADMAP_AR.md) · [30 scoped tasks](docs/community/03_CONTRIBUTOR_TASK_CATALOG_AR.md) · [8 ready-to-open issues](docs/community/12_READY_TO_POST_ISSUES_AR_EN.md) · [Governance](GOVERNANCE.md) · [Contributor guidelines](CONTRIBUTING.md).
+
+**Project owner launch checklist:** [GitHub setup and credit](docs/community/01_REPOSITORY_SETUP_AND_OWNERSHIP_AR.md) · [Community directory](docs/community/05_COMMUNITY_DIRECTORY_AR.md) · [90-day outreach plan](docs/community/07_90_DAY_LAUNCH_PLAN_AR.md). Please submit reproducible bug reports, tests, accessibility fixes and honest acoustic evaluations. **Stars are welcome but never required** for contribution or support.
+
 ## Contribute
 
 Bug reports, audio quality findings, fixes, translations and documentation are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) or [open an issue](https://github.com/ahpa5246-lgtm/mina-voice-studio/issues/new/choose). Please do not upload private voice recordings, model weights or access tokens.
