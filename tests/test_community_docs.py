@@ -136,7 +136,7 @@ def test_readme_uses_genuine_checked_in_browser_images():
 def test_readme_has_real_install_command_and_honest_upstream_limits():
     readme = text("README.md")
     for needle in ("git clone https://github.com/ahpa5246-lgtm/mina-voice-studio.git",
-                   ".\\\\start.ps1", "bash start.sh", "http://127.0.0.1:7860",
+                   "start.ps1", "bash start.sh", "http://127.0.0.1:7860",
                    "model weights are separate downloads", "Qwen3-TTS",
                    "Chatterbox", "Applio", "Faster-Whisper", "SoXR",
                    "Local app", "MIT", "Kaggle Tesla T4"):
