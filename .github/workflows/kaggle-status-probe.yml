@@ -1,0 +1,42 @@
+name: Inspect private Kaggle benchmark status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/kaggle-status-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN || secrets.KAGGLE }}
+      KERNEL: minahussain111/mina-cartoon-voice-verification
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read private Kaggle status without launching a run
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${KAGGLE_API_TOKEN:-}" ]]; then
+            echo 'Mina Kaggle Actions secret unavailable.' >&2
+            exit 1
+          fi
+          python -m pip install -q 'kaggle>=1.7,<3'
+          echo '--- KAGGLE EXECUTION STATUS ---'
+          kaggle kernels status "$KERNEL"
+          echo '--- KAGGLE EXECUTION LOGS (last 120 lines if available) ---'
+          if kaggle kernels logs "$KERNEL" > /tmp/kaggle-logs.txt 2>&1; then
+            tail -n 120 /tmp/kaggle-logs.txt
+          else
+            echo 'Kaggle logs not yet available; status above is authoritative.'
+            tail -n 10 /tmp/kaggle-logs.txt
+          fi
+          echo '--- END; NO GPU JOB WAS STARTED BY THIS INSPECTION ---'
