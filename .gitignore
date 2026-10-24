@@ -10,3 +10,4 @@ models/
 *.pth
 *.pt
 *.onnx
+.venvs/

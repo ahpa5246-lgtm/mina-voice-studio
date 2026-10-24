@@ -1,0 +1,76 @@
+name: Upload Qwen voice benchmark to Kaggle
+
+on:
+  workflow_dispatch:
+    inputs:
+      kaggle_username:
+        description: Kaggle username (profile slug), not your secret token
+        required: true
+        type: string
+      run_gpu:
+        description: Actually start GPU inference? Defaults to upload-only.
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  kaggle:
+    runs-on: ubuntu-latest
+    env:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+      KAGGLE_USERNAME_INPUT: ${{ inputs.kaggle_username }}
+      RUN_GPU_INPUT: ${{ inputs.run_gpu }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check token and prepare private notebook metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${KAGGLE_API_TOKEN:-}" ]]; then
+            echo 'Missing Kaggle token: add KAGGLE_API_TOKEN as GitHub Actions repository secret.' >&2
+            exit 1
+          fi
+          python - <<'PY'
+          import json, os, pathlib, re, shutil
+          user=os.environ['KAGGLE_USERNAME_INPUT'].strip().lower()
+          if not re.fullmatch(r'[a-z0-9_-]{3,40}', user):
+              raise SystemExit('Invalid Kaggle profile username slug')
+          folder=pathlib.Path('kaggle/_push_stage')
+          folder.mkdir(parents=True, exist_ok=True)
+          shutil.copyfile('kaggle/cartoon_voices_qwen3.ipynb',folder/'cartoon_voices_qwen3.ipynb')
+          metadata={
+              'id':f'{user}/mina-cartoon-voice-verification',
+              'title':'Mina Cartoon Voice Verification',
+              'code_file':'cartoon_voices_qwen3.ipynb',
+              'language':'python','kernel_type':'notebook',
+              'is_private':'true','enable_gpu':'true',
+              'enable_internet':'true','machine_shape':'NvidiaTeslaT4',
+              'dataset_sources':[],'competition_sources':[],
+              'kernel_sources':[],'model_sources':[]}
+          (folder/'kernel-metadata.json').write_text(json.dumps(metadata,indent=2))
+          print('Prepared PRIVATE Kaggle notebook; GPU request requires a separate explicit action.')
+          PY
+      - name: Install official Kaggle CLI
+        run: python -m pip install 'kaggle>=1.7,<3'
+      - name: Push private notebook
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${RUN_GPU_INPUT}" == "true" ]]; then
+            echo 'GPU run requested; Kaggle quota, capacity and model download may block execution.'
+            kaggle kernels push -p kaggle/_push_stage --accelerator NvidiaTeslaT4
+          else
+            echo 'Uploading notebook WITHOUT executing any Kaggle cells or using GPU.'
+            kaggle kernels push -p kaggle/_push_stage --no-run
+          fi
+      - name: Print link and verification instructions
+        shell: bash
+        run: |
+          echo "Notebook: https://www.kaggle.com/code/${KAGGLE_USERNAME_INPUT}/mina-cartoon-voice-verification"
+          echo 'Inspect Kaggle status/logs and real WAV outputs before claiming benchmarks passed.'

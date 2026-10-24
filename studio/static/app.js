@@ -29,6 +29,33 @@ function renderEngines(){
   card.append(title,info,badge);container.append(card);
  });
 }
+async function refreshAudioEvidence(){
+ const panel=$("#acousticEvidence");
+ try{
+  const res=await fetch("/api/verification/status",{cache:"no-store"});
+  if(!res.ok)throw Error("HTTP "+res.status);
+  const body=await res.json();
+  panel.replaceChildren();
+  for(const info of body.engines){
+   const card=document.createElement("div");card.className="card engine-card";
+   const title=document.createElement("h3");title.textContent=info.engine.toUpperCase();
+   const state=document.createElement("span");state.className="tag"+(info.audio_verified?" ok":"");
+   state.textContent=info.audio_verified
+     ?(locale==="ar"?"توليد صوت محلي موثّق":"Local WAV verified")
+     :(locale==="ar"?"لم يجتز فحص صوت حديث":"No recent passing WAV test");
+   const detail=document.createElement("p");
+   detail.textContent=info.audio_verified
+     ? [info.reported_model, info.duration_seconds+"s",info.realtime_factor+" RTF",
+        info.wer===null?"":("WER "+info.wer)].filter(Boolean).join(" · ")
+     : (locale==="ar"?"يلزم تشغيل السكربت على GPU والنماذج المثبتة.":"Run the actual model verification on configured hardware.");
+   const note=document.createElement("small");
+   note.textContent=locale==="ar"
+     ?"هذا دليل تشغيل محلي فقط، وليس شهادة بجودة التمثيل."
+     :"Local self-reported run, not an independently certified acting score.";
+   card.append(title,state,detail,note);panel.append(card);
+  }
+ }catch(err){panel.textContent="Audio verification unavailable: "+err.message;}
+}
 async function refresh(){
  try{
   const [a,b]=await Promise.all([fetch("/api/health"),fetch("/api/models")]);if(!a.ok||!b.ok)throw Error("HTTP error");
@@ -36,7 +63,7 @@ async function refresh(){
   const select=$("#model");select.textContent="";
   if(!models.length){const option=document.createElement("option");option.value="";option.textContent=t("notFound");select.append(option);}
   else models.forEach((m)=>{const option=document.createElement("option");option.value=m.id;option.textContent=m.name;select.append(option);});
-  renderEngines();
+  renderEngines();await refreshAudioEvidence();
  }catch(error){$("#engineList").textContent=t("error")+": "+error.message;}
 }
 const pause=(time)=>new Promise((resolve)=>setTimeout(resolve,time));

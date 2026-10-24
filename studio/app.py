@@ -212,6 +212,12 @@ def health():
     return {"version": app.version, "local_only_default": True, "engines": engines.status()}
 
 
+@app.get("/api/verification/status")
+def acoustic_verification_status():
+    from studio.verification import status
+    return status(DATA)
+
+
 @app.get("/api/models")
 def models():
     return {"applio": engines.model_catalog()}

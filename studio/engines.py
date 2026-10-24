@@ -94,7 +94,17 @@ def status() -> list[dict[str, Any]]:
     )
     root = applio_root()
     models = model_catalog()
+    from studio.qwen_runtime import configured as qwen_configured
+    qwen_ready = qwen_configured()
     return [
+        {
+            "id": "qwen",
+            "title": "Qwen3-TTS VoiceDesign / Base / CustomVoice",
+            "operation": "speech",
+            "configured": qwen_ready,
+            "label": "Configured (real acoustic test required)" if qwen_ready else "Install Qwen in isolated Python environment",
+            "languages": ["en","zh","ja","ko","de","fr","ru","pt","es","it"],
+        },
         {
             "id": "chatterbox",
             "title": "Chatterbox Multilingual V3",
