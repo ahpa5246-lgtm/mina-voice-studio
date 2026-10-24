@@ -24,7 +24,8 @@ def test_home(client):
 def test_health_contract(client):
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert len(response.json()["engines"]) == 4
+    assert {"qwen", "chatterbox", "applio", "gpt-sovits", "tts-webui"}.issubset(
+        {item["id"] for item in response.json()["engines"]})
 
 
 def test_consent_required(client):
