@@ -56,3 +56,12 @@ def test_contributing_and_security_docs_exist():
     assert "not suitable for exposing" in text("CONTRIBUTING.md")
     assert "Do not expose" in text("SECURITY.md")
     assert "administration" in text("docs/REPOSITORY_METADATA.md")
+
+
+def test_kaggle_workflow_accepts_both_secret_names():
+    workflow = text(".github/workflows/kaggle-voice-benchmark.yml")
+    assert "secrets.KAGGLE_API_TOKEN || secrets.KAGGLE" in workflow
+    assert "--no-run" in workflow
+    assert "KAGGLE_API_TOKEN: " in workflow
+    docs = text("docs/REAL_AUDIO_TEST_AR.md")
+    assert "KAGGLE_API_TOKEN" in docs and "`KAGGLE`" in docs

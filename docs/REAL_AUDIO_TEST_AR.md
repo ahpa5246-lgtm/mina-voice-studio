@@ -42,7 +42,7 @@ python scripts/verify_real_audio.py --engine qwen --model custom --language en -
 
 توجد الآن GitHub Action باسم **Upload Qwen voice benchmark to Kaggle** وتستطيع رفع دفتر `kaggle/cartoon_voices_qwen3.ipynb` بشكل **خاص**. **الوضع الافتراضي Upload-only** ولا يحرق GPU. عند اختيار `run_gpu=true` يبدأ اختبار استدلال Qwen الصوتي وليس تدريب أوزان.
 
-**لا ترسلي المفتاح في الدردشة.** افتحي GitHub repository → Settings → Secrets and variables → Actions → New repository secret، وأضيفي الاسم الدقيق `KAGGLE_API_TOKEN` وقيمته التوكن الجديد الذي يولده Kaggle من [Settings → API](https://www.kaggle.com/settings/api). إذا كان لديك سر بالاسم `KAGGLE` في مستودع آخر، فهو لا ينتقل تلقائيًا لهذا المستودع.
+**لا ترسلي المفتاح في الدردشة.** افتحي إعدادات **مستودع Mina Voice Studio نفسه** → Settings → Secrets and variables → Actions → New repository secret. استخدمي الاسم **`KAGGLE`** الذي استعملته سابقًا، والصقي توكن Kaggle الصادر من [Settings → API](https://www.kaggle.com/settings/api) والذي يبدأ عادةً بـ `KGAT_`. الإجراء يقبل أيضًا الاسم `KAGGLE_API_TOKEN` للتوافق مع توثيق Kaggle الرسمي، ويستخدمه أولًا إذا كان الاسمان موجودين. **أسرار GitHub منفصلة لكل مستودع**: وجود `KAGGLE` في مستودع آخر لا يجعله متاحًا تلقائيًا لـMina. GitHub يحفظ قيمة السر ولا يعرضها مجددًا؛ انسخيها من حساب Kaggle، وليس من مستودعك السابق.
 
 بعد ذلك: Actions → **Upload Qwen voice benchmark to Kaggle** → **Run workflow** → اكتبي *اسم حساب Kaggle* في `kaggle_username` دون رابط كامل. اتركي `run_gpu=false` لرفع الدفتر فقط. لبدء الاختبار على GPU اختاري `true`. راقبي Kaggle Logs وOutputs؛ لا يكفي نجاح خطوة GitHub لإثبات أن Kaggle أنهى التوليد.
 
