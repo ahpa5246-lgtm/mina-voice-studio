@@ -356,3 +356,14 @@ def test_saved_cartoon_project_roundtrips_through_real_browser(page):
         timeout=15000)
     assert current.locator(".cast-retry").count()==2
     assert not errors,errors
+
+
+def test_real_acoustic_evidence_visible_but_not_fabricated(page):
+    current,errors=page
+    current.locator('.nav[data-tab="engines"]').click()
+    current.locator("#acousticEvidence .engine-card").first.wait_for(timeout=15000)
+    assert current.locator("#acousticEvidence .engine-card").count()==3
+    assert current.locator("#acousticEvidence").inner_text().count("QWEN")==1
+    assert current.locator("#acousticEvidence").inner_text().count("CHATTERBOX")==1
+    assert not current.locator("#acousticEvidence .tag.ok").count()
+    assert not errors,errors

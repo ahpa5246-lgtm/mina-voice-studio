@@ -87,6 +87,12 @@ Windows PowerShell alternative: run `.\start.ps1` in the repository root (requir
 
 Open [the Qwen3 cartoon-voices notebook](kaggle/cartoon_voices_qwen3.ipynb) and follow the [Arabic Kaggle instructions](docs/QWEN_KAGGLE_AR.md). Enable a Kaggle GPU and network access if available. It tests **English** voice design, multi-line clone reuse, acted preset voices and embedding similarity. Kaggle quotas and downloads vary. **No GPU benchmark results are represented as completed.**
 
+## Real acoustic verification (not just installed Python packages)
+
+Mina now provides an isolated engine installer and a local evidence reporter. **The installer is opt-in** and model checkpoints still download separately. After running actual upstream Qwen/Chatterbox/Applio inference on a configured GPU, the auditor saves a WAV file, its SHA256, technical audio metrics, generation latency / realtime factor, GPU information (when available) and optional Faster-Whisper WER/CER. The Engines page distinguishes **not tested**, **failed**, **stale** and **locally tested** results. It never silently substitutes mock WAVs.
+
+**[Arabic GPU + Kaggle guide](docs/REAL_AUDIO_TEST_AR.md)** · [Kaggle Qwen notebook](kaggle/cartoon_voices_qwen3.ipynb). The CI suite continues to stub costly model inference; do not claim objective acoustic quality until actual files and blind listening tests exist.
+
 ## Testing and project transparency
 
 ```bash
