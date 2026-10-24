@@ -79,3 +79,32 @@ def test_one_time_kaggle_activation_yaml_is_parseable_and_guarded():
     env = workflow["jobs"]["kaggle"]["env"]
     assert "minahussain111" in env["KAGGLE_USERNAME_INPUT"]
     assert "'true'" in env["RUN_GPU_INPUT"]
+
+
+def test_kaggle_asr_bypasses_incompatible_pyav_and_saves_partial_audio():
+    import ast
+    import json
+    notebook = json.loads(text("kaggle/cartoon_voices_qwen3.ipynb"))
+    blocks = [item["source"] for item in notebook["cells"] if item["cell_type"] == "code"]
+    source = ["".join(block) for block in blocks]
+    for block in source:
+        # Notebook cells must be parseable after stripping pip shell magic.
+        assert ast.parse("\n".join(line for line in block.splitlines()
+                                   if not line.startswith("!")))
+    assert any("soxr" in block and "pip -q install" in block for block in source)
+    assert any("preliminary metrics" in block and "zipfile.ZipFile" in block for block in source)
+    whisper_cell = next(block for block in source if "asr_model.transcribe(" in block)
+    assert "sf.read" in whisper_cell
+    assert "soxr.resample" in whisper_cell
+    assert "asr_model.transcribe(audio16" in whisper_cell
+    assert "asr_model.transcribe(str(path)" not in whisper_cell
+
+
+def test_kaggle_retry_requires_specific_activation_commit_title():
+    import yaml
+    workflow = yaml.safe_load(text(".github/workflows/kaggle-voice-benchmark.yml"))
+    triggers = workflow.get("on", workflow.get(True))
+    assert "kaggle/cartoon_voices_qwen3.ipynb" in triggers["push"]["paths"]
+    guard = workflow["jobs"]["kaggle"]["if"]
+    assert "ci: rerun Kaggle ASR fix after real voice generation" in guard
+    assert "workflow_dispatch" in guard
