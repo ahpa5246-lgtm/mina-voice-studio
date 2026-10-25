@@ -2,6 +2,35 @@
 
 # Mina Voice Studio
 
+## Download, setup and project overview
+
+A local workspace for character voices, dubbing and dialogue production.
+
+Character cast; script projects; optional AI engines; audio checks; subtitle and audio export.
+
+![Project workflow illustration](docs/project-overview.svg)
+
+[Download source ZIP](https://github.com/ahpa5246-lgtm/mina-voice-studio/archive/refs/heads/main.zip) · [Changes and branches](https://github.com/ahpa5246-lgtm/mina-voice-studio/branches) · [Verification notes](docs/QUALITY_REVIEW.md)
+
+The ZIP contains source code. Installation steps and external runtime requirements are listed below.
+
+```bash
+git clone https://github.com/ahpa5246-lgtm/mina-voice-studio.git
+cd mina-voice-studio
+```
+
+From the repository directory:
+
+```text
+python -m venv .venv
+# Activate .venv before installing packages.
+python -m pip install -r requirements.txt
+python -m uvicorn studio.app:app --host 127.0.0.1 --port 7860
+```
+
+The diagram is a project illustration. Test results and runtime limitations are recorded in [the review](docs/QUALITY_REVIEW.md); it is not a production-readiness certification.
+
+
 **A free, open-source voice workspace for cartoons, games, dubbing and creative projects.**
 
 Design a character voice, write dialogue for multiple characters, generate speech with your own installed AI models, and export audio clips and subtitles for editing.
